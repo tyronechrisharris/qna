@@ -49,7 +49,7 @@ The system is built upon a modular architecture, with each component playing a c
 
 The system also utilizes a local database to store interaction data and a cache to improve performance by reusing previous results.
 
-![image](/CRAIG_Graph.png)
+![image](/CRAIG_Graph.svg)
 
 ## Getting Started
 
