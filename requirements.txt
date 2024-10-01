@@ -1,0 +1,28 @@
+# Core Libraries
+langgraph==0.0.13  # Latest version as of Sept 30, 2024
+sentence-transformers==2.2.2
+spacy==3.6.1
+langdetect==1.0.9
+transformers==4.31.0
+
+# Database (SQLite3 is usually included by default)
+# sqlite3 
+
+# Caching (Choose one based on your preference)
+# - In-memory cache (no additional library needed)
+# - Redis: 
+# redis
+
+# Email Handling (If implementing Outlook 365 integration in the future)
+requests_oauthlib==1.3.1
+microsoft-graph==0.60.0
+
+# Offline LLM (Vicuna-7B)
+torch==2.1.0
+accelerate==0.23.0
+bitsandbytes==0.41.0
+
+# Other potential dependencies (add as needed)
+numpy==1.26.0
+pandas==2.1.1
+# ... any other libraries used in your custom tool implementations

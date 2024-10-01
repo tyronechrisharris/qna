@@ -1,0 +1,36 @@
+graph TD
+    subgraph Chat["Chat Input (Terminal)"]
+        A[Chat Input Handler] --> Q[(Queue)]
+        style Chat fill:#f0f,stroke:#333,stroke-width:2px,color:#000,fill-opacity:0.2;
+    end
+
+    subgraph Processing["Processing"]
+        Q --> B[Extract Question/Follow-up]
+        B --> C[Generate UID]
+        C --> D[Store in DB]
+        B --> E{Is Follow-up?}
+        E -- Yes --> F[Extract UID from Reply]
+        F --> G[Retrieve Context]
+        E -- No --> H[Language Detection]
+        G --> H
+        H --> I{Is Input English?}
+        I -- Yes --> J[Document Retriever]
+        I -- No --> K["Translate to English"]
+        K --> J
+        J --> L[Contextual Answer<br>Generation]
+        L --> M[Self-Corrective Agent]
+        M -- Acceptable --> N["Translate to<br>UserLanguage"]
+        M -- "Not Acceptable &<br>Retry < 3" --> J
+        M -- "Not Acceptable &<br>Retry >= 3" --> N
+        style Processing fill:#ccf,stroke:#333,stroke-width:2px,color:#000,fill-opacity:0.2;
+    end
+
+    subgraph Output["Output"]
+        N --> O[Display Answer in Chat]
+        O --> P[Update DB]
+        style Output fill:#fcf,stroke:#333,stroke-width:2px,color:#000,fill-opacity:0.2;
+    end
+
+    P --> A
+
+    classDef default text-align:center;
