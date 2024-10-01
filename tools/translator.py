@@ -2,6 +2,11 @@ from langchain.tools import BaseTool
 from langdetect import detect
 
 class Translator(BaseTool):
+    """
+    Tool for translating text between various languages and English.
+    Leverages the SentencePiece tokenizer and pre-trained MarianMT models.
+    """
+
     name = "translator"
     description = "Translate text between supported languages and English."
 
@@ -56,7 +61,5 @@ class Translator(BaseTool):
         return translation
 
     def _arun(self, text):
-        """
-        Asynchronous translation is not currently supported.
-        """
+        """Asynchronous translation is not currently supported."""
         raise NotImplementedError("Translator does not support async")

@@ -1,8 +1,8 @@
-## Offline Multilingual Question Answering System
+# Offline Multilingual Question Answering System
 
-This comprehensive system enables users to interact via a terminal-based chat interface, posing questions in multiple languages and receiving accurate, contextually relevant answers, all without requiring an internet connection. By leveraging natural language processing, information retrieval, intelligent agents, and offline models, this system prioritizes data privacy and accessibility even in disconnected environments.
+This comprehensive system enables users to interact via a terminal-based chat interface, posing questions in multiple languages and receiving accurate, contextually relevant answers in the same language, all without requiring an internet connection. By leveraging natural language processing, information retrieval, intelligent agents, and offline models, this system prioritizes data privacy and accessibility even in disconnected environments.
 
-### Table of Contents
+## Table of Contents
 
 - [Introduction](#introduction)
 - [Features](#features)
@@ -33,32 +33,30 @@ This system is designed to provide a seamless and informative question-answering
 
 ## Features
 
-- **Offline Operation:**  Functions entirely without an internet connection, ensuring data privacy and availability.
+- **Offline Operation:** Functions entirely without an internet connection, ensuring data privacy and availability.
 - **Multilingual Support:** Handles questions and provides answers in multiple languages (Spanish, French, German, Thai, Russian, Arabic, Portuguese, Mandarin).
 - **Contextual Understanding:** Maintains conversation history within chat sessions to provide more relevant and coherent responses to follow-up questions.
-- **Self-Correction:**  Employs a retry mechanism to iteratively refine answers, minimizing hallucinations and improving accuracy.
-- **Terminal-Based Chat Interface:**  Offers a user-friendly, real-time chat interface for interaction.
-- **UID Tracking & Database:**  Assigns unique identifiers to each interaction, facilitating tracking, analysis, and debugging.
-- **Caching:**  Enhances performance by storing and reusing previous results.
-- **Document Referencing:**  Provides transparency by citing the sources used to generate answers.
+- **Self-Correction:** Employs a retry mechanism to iteratively refine answers, minimizing hallucinations and improving accuracy.
+- **Terminal-Based Chat Interface:** Offers a user-friendly, real-time chat interface for interaction.
+- **UID Tracking & Database:** Assigns unique identifiers to each interaction, facilitating tracking, analysis, and debugging.
+- **Caching:** Enhances performance by storing and reusing previous results.
+- **Document Referencing:** Provides transparency by citing the sources used to generate answers.
 - **Efficient Multilingual Tokenizer:** Utilizes SentencePiece for efficient handling of multiple languages.
-- **Offline LLM:**  Leverages the Vicuna-7B model for powerful language understanding and answer generation capabilities in an offline setting.
-- **Queue-Based Processing:**  Handles multiple chat requests concurrently, ensuring fair and efficient processing.
-
-![image](/CRAIG_Graph-2024-10-01-035038.svg)
+- **Offline LLM:** Leverages the Vicuna-7B model for powerful language understanding and answer generation capabilities in an offline setting.
+- **Queue-Based Processing:** Handles multiple chat requests concurrently, ensuring fair and efficient processing.
 
 ## System Architecture
 
-The system is built upon a modular architecture, orchestrated using Langgraph, a declarative workflow management framework. It consists of several key components, each responsible for a specific task in the question-answering process:
+The system's modular architecture comprises interconnected components, each fulfilling a specific role in the question-answering process.
 
 *   **`Config`**: Centralizes configuration and setup, including loading models, database connection, cache initialization.
-*   **`Tasks`**:  Defines the Langgraph tasks and their dependencies, representing the system's workflow.
+*   **`Tasks`**: Defines the Langgraph tasks and their dependencies, representing the system's workflow.
 *   **Tools:** Encapsulate the functionality of different components, facilitating modularity and reusability.
     *   **`LanguageDetectionTool`:** Identifies the input language.
     *   **`Translator`:** Handles translation between supported languages and English.
     *   **`DocumentAnswerer`:** Retrieves relevant documents and generates answers using the offline LLM.
     *   **`SelfCorrectiveAgent`:** Evaluates answers and triggers retries if needed.
-    *   **`ChatInputTool`:**  Handles user input from the terminal-based chat interface.
+    *   **`ChatInputTool`:** Handles user input from the terminal-based chat interface.
 
 ## Components
 
@@ -76,14 +74,12 @@ The system is built upon a modular architecture, orchestrated using Langgraph, a
 
 *   **Purpose:** Defines the Langgraph tasks and their dependencies, forming the system's workflow
 *   **Tasks**
-    *   `fetch_new_emails_task`:  (Placeholder for future email integration)
-    *   `check_registry_task`:  (Placeholder for future email integration)
-    *   `chat_input_task`:  Gets user input from the chat interface and adds it to the request queue
-    *   `detect_language_task`:  Detects the language of the input question
+    *   `chat_input_task`: Gets user input from the chat interface and adds it to the request queue
+    *   `detect_language_task`: Detects the language of the input question
     *   `translate_to_english_task`: Translates the question to English if needed
     *   `retrieve_documents_task`: Retrieves relevant documents from the local collection
     *   `generate_answer_task`: Generates an answer using the offline LLM and retrieved documents
-    *   `self_correct_task`:  Evaluates the answer and triggers retries if necessary
+    *   `self_correct_task`: Evaluates the answer and triggers retries if necessary
     *   `translate_to_user_language_task`: Translates the answer back to the original language if needed
     *   `display_answer_in_chat_task`: Displays the answer in the chat interface and updates the database
 *   **Key Considerations:**
@@ -101,7 +97,7 @@ The system is built upon a modular architecture, orchestrated using Langgraph, a
 
 #### Translator (`translator.py`)
 
-*   **Purpose:**  Handles translation between supported languages and English
+*   **Purpose:** Handles translation between supported languages and English
 *   **Functionality:**
     *   Uses the SentencePiece tokenizer and pre-trained MarianMT models loaded in `config.py`
     *   Caches translations for efficiency
@@ -137,7 +133,7 @@ The system is built upon a modular architecture, orchestrated using Langgraph, a
 
 ## Getting Started
 
-## Prerequisites
+### Prerequisites
 
 *   **Python 3.x:**  Ensure you have Python 3.x installed on your system. You can download it from the official Python website: [https://www.python.org/](https://www.python.org/)
 
@@ -165,8 +161,30 @@ The system is built upon a modular architecture, orchestrated using Langgraph, a
 
 *   **Embedded Document Collection:** 
     *   Prepare your document collection in a suitable format (e.g., plain text files).
-    *   Embed the documents using an offline embedding model like **Sentence Transformers**. 
-    *   Store the embeddings in a local vector database (e.g., FAISS) for efficient retrieval.
+    *   **Generate embeddings using Sentence Transformers:**
+
+        ```python
+        from langchain.document_loaders import TextLoader
+        from langchain.text_splitter import RecursiveCharacterTextSplitter
+        from langchain.vectorstores import FAISS
+        from langchain.embeddings import HuggingFaceEmbeddings
+
+        # 1. Load and preprocess documents
+        loader = TextLoader('./data/documents/your_document.txt')  # Replace with your actual document path
+        documents = loader.load()
+
+        text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=0)
+        texts = text_splitter.split_documents(documents)
+
+        # 2. Generate embeddings (all-MiniLM-L6-v2 is recommended for Vicuna)
+        embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
+        db = FAISS.from_documents(texts, embeddings)
+
+        # 3. Save the vectorstore (FAISS index) to disk
+        db.save_local("data/faiss_index")
+        ```
+
+    *   This code snippet demonstrates how to load documents, split them into chunks, generate embeddings using the `all-MiniLM-L6-v2` model (recommended for Vicuna), and store them in a FAISS index.
 
 *   **SQLite3:** 
     *   Ensure you have SQLite3 installed on your system. It's usually included by default in most Python distributions. If not, you can install it using your package manager (e.g., `apt-get install sqlite3` on Debian/Ubuntu or `brew install sqlite3` on macOS).
@@ -181,12 +199,13 @@ The system is built upon a modular architecture, orchestrated using Langgraph, a
     *   If you plan to implement the email functionality in the future, you'll also need to install libraries for interacting with the Outlook 365 API (e.g., `requests_oauthlib` and `microsoft-graph`).
     *   If you choose a different caching solution than the basic in-memory cache, install the necessary library for that (e.g., `redis` for Redis).
 
+
 ### Installation
 
 1.  **Clone the repository:**
 
     ```bash
-    git clone https://code.ornl.gov/6cq/offline-multilingual-question-answering-system
+    git clone [https://code.ornl.gov/6cq/offline-multilingual-question-answering-system](https://code.ornl.gov/6cq/offline-multilingual-question-answering-system)
     ```
 
 2.  **Navigate to the project directory:**
@@ -221,7 +240,7 @@ The system is built upon a modular architecture, orchestrated using Langgraph, a
     pip install -r requirements.txt
     ```
 
-    This will install all the necessary Python packages listed in `requirements.txt` within the virtual environment, ensuring that your project has its own isolated set of dependencies. 
+    This will install all the necessary Python packages listed in `requirements.txt` within the virtual environment.
 
 6.  **Download and organize models:**
 
@@ -256,53 +275,74 @@ The system is built upon a modular architecture, orchestrated using Langgraph, a
             MarianMTModel.from_pretrained(from_en_model_name, cache_dir="./models/translation")
         ```
 
+    *   **Download the LLM (Vicuna-7B):**
 
-*   **Download the LLM (Vicuna-7B):**
+        *   **Ensure you have enough disk space:** The Vicuna-7B model is quite large (around 13GB). Make sure you have sufficient disk space available before downloading.
+        *   **Use the `transformers` library to download:** 
 
-    *   **Ensure you have enough disk space:** The Vicuna-7B model is quite large (around 13GB). Make sure you have sufficient disk space available before downloading
-    *   **Use the `transformers` library to download:** 
+            ```python
+            from transformers import AutoTokenizer, AutoModelForCausalLM
+
+            tokenizer = AutoTokenizer.from_pretrained("TheBloke/Vicuna-7B-v1.5-GGUF", cache_dir="./models/llm")
+            model = AutoModelForCausalLM.from_pretrained("TheBloke/Vicuna-7B-v1.5-GGUF", cache_dir="./models/llm")
+            ```
+
+            This code will download both the tokenizer and the model weights to the `./models/llm` directory.
+
+        *   **Consider using a quantized version:** If you're running the system on a CPU or have limited memory, you might want to explore using a quantized version of Vicuna-7B, which can significantly reduce its memory footprint and improve inference speed. Refer to the Vicuna-7B model documentation for instructions on how to obtain and use a quantized version.
+
+    *   **Download the SentencePiece tokenizer:**
 
         ```python
-        from transformers import AutoTokenizer, AutoModelForCausalLM
+        from transformers import AutoTokenizer
 
-        tokenizer = AutoTokenizer.from_pretrained("TheBloke/Vicuna-7B-v1.5-GGUF", cache_dir="./models/llm")
-        model = AutoModelForCausalLM.from_pretrained("TheBloke/Vicuna-7B-v1.5-GGUF", cache_dir="./models/llm")
+        tokenizer = AutoTokenizer.from_pretrained("xlm-roberta-base", cache_dir="./models/embedding")
         ```
 
-        This code will download both the tokenizer and the model weights to the `./models/llm` directory
+        This code will download the SentencePiece tokenizer to the `./models/embedding` directory.
 
-    *   **Consider using a quantized version:** If you're running the system on a CPU or have limited memory, you might want to explore using a quantized version of Vicuna-7B, which can significantly reduce its memory footprint and improve inference speed. Refer to the Vicuna-7B model documentation for instructions on how to obtain and use a quantized version.
+7.  **Prepare your document collection:**
 
-*   **Download the SentencePiece tokenizer:**
+    1.  **Create a document upload folder:** 
+        * Create a folder named `uploads` at the root level of the project. This is where users will upload their documents.
+    2.  **Generate embeddings using Sentence Transformers:**
 
-    ```python
-    from transformers import AutoTokenizer
+        ```python
+        from langchain.document_loaders import DirectoryLoader
+        from langchain.text_splitter import RecursiveCharacterTextSplitter
+        from langchain.vectorstores import FAISS
+        from langchain.embeddings import HuggingFaceEmbeddings
 
-    tokenizer = AutoTokenizer.from_pretrained("xlm-roberta-base", cache_dir="./models/embedding")
-    ```
+        # 1. Load and preprocess documents from the 'uploads' folder
+        loader = DirectoryLoader('./uploads', glob="**/*.txt")  # Load all .txt files from the uploads folder
+        documents = loader.load()
 
-    This code will download the SentencePiece tokenizer to the `./models/embedding` directory.
+        text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=0)
+        texts = text_splitter.split_documents(documents)
 
-*   **Prepare your document collection:**
+        # 2. Generate embeddings (all-MiniLM-L6-v2 is recommended for Vicuna)
+        embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
+        db = FAISS.from_documents(texts, embeddings)
 
-    *   Organize your documents in a suitable format (e.g., plain text files) within the `data/documents` directory.
-    *   Use an offline embedding model (e.g., Sentence Transformers) to generate embeddings for your documents and store them in a local vector database (e.g., FAISS) for efficient retrieval. You can refer to the Langchain documentation or other resources for guidance on how to perform document embedding and indexing.
+        # 3. Save the vectorstore (FAISS index) to disk
+        db.save_local("data/faiss_index")
+        ```
 
-
+    *   This code snippet demonstrates how to load documents from the `uploads` folder, split them into chunks, generate embeddings using the `all-MiniLM-L6-v2` model (recommended for Vicuna), and store them in a FAISS index.
 
 
 ### Configuration
 
 1.  **`config.py`**
     *   Update the `language_pairs` dictionary in the `Config` class with the actual paths to your downloaded translation models.
-    *   Replace the placeholder in `_load_document_collection` with your actual code to load your embedded document collection.
+    *   Ensure the path to your FAISS index in `_load_document_collection` is correct.
     *   Configure the database connection details in `_initialize_database` if you're using a different database system.
     *   Ensure you have the SentencePiece tokenizer downloaded and specify its path in `_load_translation_models`.
 
 2.  **Tool Implementations**
-    *   In `document_answerer.py`, replace the `OpenAI` placeholder with your actual offline LLM interface.
-    *   Customize the `SelfCorrectiveAgent` in `self_corrective_agent.py` with your desired evaluation logic and thresholds.
-    *   Implement the chat interface logic in `chat_input_tool.py` and the `display_answer_in_chat_task` in `tasks.py` using the `curses` library or a similar approach.
+    *   In `document_answerer.py`, ensure the  `_run`  method uses your actual offline LLM interface.
+    *   Customize the  `SelfCorrectiveAgent`  in  `self_corrective_agent.py`  with your desired evaluation logic and thresholds.
+    *   Implement the chat interface logic in  `chat_input_tool.py`  and the  `display_answer_in_chat_task`  in  `tasks.py`  using the  `curses`  library or a similar approach.
 
 ### Running the System
 
@@ -358,5 +398,3 @@ This project is licensed under the [MIT License](LICENSE)
     *   Continuously update and expand your embedded document collection to cover a wider range of topics and domains, making the system more knowledgeable and versatile.
 *   **User Feedback Mechanism:**
     *   Incorporate a mechanism to collect user feedback on the quality and relevance of answers. This feedback can be used to further fine-tune models and improve the system's overall performance.
-
-

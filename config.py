@@ -1,8 +1,15 @@
 import sqlite3
-from transformers import MarianMTModel, MarianTokenizer, AutoTokenizer, AutoModelForCausalLM, pipeline
+
 from langchain.embeddings import HuggingFaceEmbeddings
 from langchain.llms import HuggingFacePipeline
 from langchain.vectorstores import FAISS
+from transformers import (
+    MarianMTModel,
+    MarianTokenizer,
+    AutoTokenizer,
+    AutoModelForCausalLM,
+    pipeline,
+)
 
 class Config:
     def __init__(self):
@@ -50,15 +57,15 @@ class Config:
     def _load_document_collection(self):
         # Load your local embedded document collection 
         embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
-        return FAISS.load_local("my_faiss_index", embeddings)
+        return FAISS.load_local("data/faiss_index", embeddings)
 
     def _initialize_database(self):
-        conn = sqlite3.connect('email_interactions.db')
+        conn = sqlite3.connect('chat_interactions.db')  # Changed database name to 'chat_interactions.db'
         cursor = conn.cursor()
 
-        # Create the email_interactions table 
+        # Create the chat_interactions table 
         cursor.execute('''
-            CREATE TABLE IF NOT EXISTS email_interactions (
+            CREATE TABLE IF NOT EXISTS chat_interactions (
                 uid TEXT PRIMARY KEY,
                 timestamp DATETIME,
                 question TEXT,

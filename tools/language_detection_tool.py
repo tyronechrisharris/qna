@@ -5,19 +5,20 @@ class LanguageDetectionTool(BaseTool):
     name = "language_detection"
     description = "Detects the language of the given text."
 
-    def _run(self, text):
+    def _run(self, text: str) -> str:
+        """
+        Detect the language of the input text.
+
+        Args:
+            text: The text to detect the language of.
+
+        Returns:
+            The detected language code (e.g., 'en', 'es', 'fr').
+            If detection fails, returns 'en' (English) as the default.
+        """
         try:
-            # Attempt language detection using langdetect
             detected_language = detect(text)
             return detected_language
         except lang_detect_exception.LangDetectException:
-            # Handle cases where langdetect fails to detect the language
-            return self._handle_detection_failure(text)
-
-    def _handle_detection_failure(self, text):
-        # Implement your fallback strategy here
-        # ...
-
-        # For illustration, let's assume English as the default
-        print(f"Failed to detect language for text: {text}") 
-        return 'en'
+            print(f"Failed to detect language for text: {text}")
+            return 'en'  # Default to English if detection fails
