@@ -221,7 +221,74 @@ The system is built upon a modular architecture, orchestrated using Langgraph, a
     pip install -r requirements.txt
     ```
 
-    This will install all the necessary Python packages listed in `requirements.txt` within the virtual environment, ensuring that your project has its own isolated set of dependencies.
+    This will install all the necessary Python packages listed in `requirements.txt` within the virtual environment, ensuring that your project has its own isolated set of dependencies. 
+
+6.  **Download and organize models:**
+
+    *   **Create the `models` directory and its subdirectories:**
+
+        ```bash
+        mkdir -p models/translation models/llm models/embedding
+        ```
+
+    *   **Download translation models:**
+
+        ```python
+        from transformers import MarianMTModel, MarianTokenizer
+
+        # Define language codes and model names 
+        language_pairs = {
+            'es': ('Helsinki-NLP/opus-mt-es-en', 'Helsinki-NLP/opus-mt-en-es'),
+            'fr': ('Helsinki-NLP/opus-mt-fr-en', 'Helsinki-NLP/opus-mt-en-fr'),
+            'de': ('Helsinki-NLP/opus-mt-de-en', 'Helsinki-NLP/opus-mt-en-de'),
+            'th': ('Helsinki-NLP/opus-mt-th-en', 'Helsinki-NLP/opus-mt-en-th'),
+            'ru': ('Helsinki-NLP/opus-mt-ru-en', 'Helsinki-NLP/opus-mt-en-ru'),
+            'ar': ('Helsinki-NLP/opus-mt-ar-en', 'Helsinki-NLP/opus-mt-en-ar'),
+            'pt': ('Helsinki-NLP/opus-mt-pt-en', 'Helsinki-NLP/opus-mt-en-pt'),
+            'zh': ('Helsinki-NLP/opus-mt-zh-en', 'Helsinki-NLP/opus-mt-en-zh'),
+        }
+
+        # Download models
+        for _, (to_en_model_name, from_en_model_name) in language_pairs.items():
+            MarianTokenizer.from_pretrained(to_en_model_name, cache_dir="./models/translation")
+            MarianMTModel.from_pretrained(to_en_model_name, cache_dir="./models/translation")
+            MarianTokenizer.from_pretrained(from_en_model_name, cache_dir="./models/translation")
+            MarianMTModel.from_pretrained(from_en_model_name, cache_dir="./models/translation")
+        ```
+
+
+*   **Download the LLM (Vicuna-7B):**
+
+    *   **Ensure you have enough disk space:** The Vicuna-7B model is quite large (around 13GB). Make sure you have sufficient disk space available before downloading
+    *   **Use the `transformers` library to download:** 
+
+        ```python
+        from transformers import AutoTokenizer, AutoModelForCausalLM
+
+        tokenizer = AutoTokenizer.from_pretrained("TheBloke/Vicuna-7B-v1.5-GGUF", cache_dir="./models/llm")
+        model = AutoModelForCausalLM.from_pretrained("TheBloke/Vicuna-7B-v1.5-GGUF", cache_dir="./models/llm")
+        ```
+
+        This code will download both the tokenizer and the model weights to the `./models/llm` directory
+
+    *   **Consider using a quantized version:** If you're running the system on a CPU or have limited memory, you might want to explore using a quantized version of Vicuna-7B, which can significantly reduce its memory footprint and improve inference speed. Refer to the Vicuna-7B model documentation for instructions on how to obtain and use a quantized version.
+
+*   **Download the SentencePiece tokenizer:**
+
+    ```python
+    from transformers import AutoTokenizer
+
+    tokenizer = AutoTokenizer.from_pretrained("xlm-roberta-base", cache_dir="./models/embedding")
+    ```
+
+    This code will download the SentencePiece tokenizer to the `./models/embedding` directory.
+
+*   **Prepare your document collection:**
+
+    *   Organize your documents in a suitable format (e.g., plain text files) within the `data/documents` directory.
+    *   Use an offline embedding model (e.g., Sentence Transformers) to generate embeddings for your documents and store them in a local vector database (e.g., FAISS) for efficient retrieval. You can refer to the Langchain documentation or other resources for guidance on how to perform document embedding and indexing.
+
+
 
 
 ### Configuration
