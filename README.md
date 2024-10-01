@@ -186,7 +186,7 @@ The system is built upon a modular architecture, orchestrated using Langgraph, a
 1.  **Clone the repository:**
 
     ```bash
-    git clone [https://code.ornl.gov/6cq/offline-multilingual-question-answering-system](https://code.ornl.gov/6cq/offline-multilingual-question-answering-system)
+    git clone https://code.ornl.gov/6cq/offline-multilingual-question-answering-system
     ```
 
 2.  **Navigate to the project directory:**
