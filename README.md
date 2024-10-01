@@ -45,6 +45,8 @@ This system is designed to provide a seamless and informative question-answering
 - **Offline LLM:**  Leverages the Vicuna-7B model for powerful language understanding and answer generation capabilities in an offline setting.
 - **Queue-Based Processing:**  Handles multiple chat requests concurrently, ensuring fair and efficient processing.
 
+![image](/CRAIG_Graph-2024-10-01-035038.svg)
+
 ## System Architecture
 
 The system is built upon a modular architecture, orchestrated using Langgraph, a declarative workflow management framework. It consists of several key components, each responsible for a specific task in the question-answering process:
