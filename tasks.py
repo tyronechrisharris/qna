@@ -1,67 +1,36 @@
-from langgraph import Task, tool_code
 import uuid
+import curses  # For the chat interface
+
+from langgraph import Task, tool_code
 
 class Tasks:
     def __init__(self, config):
         self.config = config
 
-    def fetch_new_emails_task(self):
+    def chat_input_task(self):
         return Task(
-            name="fetch_new_emails",
+            name="check_chat",
             tool_code=tool_code(
                 """
-                # 1. Fetch new emails from Outlook 365 (replace with your actual implementation)
-                new_emails = fetch_new_emails_from_outlook()
+                # 1. Get user input from the terminal (using curses)
+                user_input = get_user_input_from_terminal()
 
-                # 2. If there are no new emails, return None
-                if not new_emails:
-                    return None
+                if user_input:
+                    # 2. Check if this is a new chat session or a follow-up
+                    if current_chat_uid is None:  # New session
+                        # Generate a new UID for this chat session
+                        current_chat_uid = str(uuid.uuid4())
 
-                # 3. If there are new emails, return the first one (you can adjust this logic if needed)
-                return new_emails[0]
+                    # 3. Retrieve context if it's a follow-up question
+                    context = cache.get(current_chat_uid) if current_chat_uid else None
+
+                    # 4. Add the request to the queue
+                    request_queue.put(("chat", user_input, current_chat_uid, context, None))  
+
+                return None  # Return None if no user input
                 """
             ),
-        )
-
-    def check_registry_task(self):
-        return Task(
-            name="check_registry_and_extract_question",
-            tool_code=tool_code(
-                """
-                # 1. Check if sender is in the registry
-                if email.get('from') in email_registry:
-                    # 2a. If registered, extract the question and proceed
-                    extracted_question = extract_question_from_email(email)
-
-                    # Generate a UID for this submission
-                    submission_uid = str(uuid.uuid4())
-
-                    # Check if it's a follow-up question
-                    in_reply_to_uid = extract_uid_from_reply(email)
-                    if in_reply_to_uid:
-                        context = cache.get(in_reply_to_uid)
-                        if context:
-                            # Return follow-up question with context
-                            return {"question": extracted_question, "uid": submission_uid, "context": context}
-                        else:
-                            # Handle case where context is not found
-                            error_message = "Context not found. Please rephrase your question or start a new conversation."
-                            send_error_email(email.get('from'), error_message, submission_uid)
-                            return None
-
-                    # Store new question in the database
-                    store_interaction_in_db(submission_uid, email.get('from'), question=extracted_question)
-                    return {"question": extracted_question, "uid": submission_uid, "context": None} 
-                else:
-                    # 2b. If not registered, send automated reply
-                    reply_uid = str(uuid.uuid4())
-                    send_registration_instructions(email.get('from'), reply_uid)
-                    # Store automated reply interaction in the database
-                    store_interaction_in_db(reply_uid, email.get('from'), status="registration_reply")
-                    return None
-                """
-            ),
-            args={"email": "{new_email}", "email_registry": self.config.email_registry, "cache": self.config.cache},
+            args={"request_queue": "{request_queue}", "cache": self.config.cache},
         )
 
     def detect_language_task(self):
@@ -87,7 +56,7 @@ class Tasks:
                     return cached_translation
 
                 # 2. Perform translation if not cached
-                translation = translator.run(question)  # Use the translator tool
+                translation = translator.run(question) 
 
                 # 3. Store translation in cache
                 cache.set(question, translation)
@@ -95,7 +64,7 @@ class Tasks:
                 return translation
                 """
             ),
-            args={"question": "{question}", "cache": self.config.cache, "translator": Translator(self.config.cache, self.config.tokenizers, self.config.models)},
+            args={"question": "{question}", "cache": self.config.cache, "translator": Translator(self.config.cache, self.config.tokenizer, self.config.models)},
         )
 
     def retrieve_documents_task(self):
@@ -117,7 +86,6 @@ class Tasks:
             tool_code=tool_code(
                 """
                 # Generate answer using the offline LLM
-                # ... (Implement answer generation logic, consider context if provided)
                 answer = generate_answer_from_llm(query, docs, context)
 
                 # Format references
@@ -127,7 +95,7 @@ class Tasks:
                 return answer_with_references
                 """
             ),
-            args={"query": "{question}", "docs": "{documents}", "context": "{context}"},
+            args={"query": "{question}", "docs": "{documents}", "context": "{context}", "llm": self.config.llm},
         )
 
     def self_correct_task(self):
@@ -136,8 +104,6 @@ class Tasks:
             tool_code=tool_code(
                 """
                 # Evaluate the answer 
-                # ... (Implement your evaluation logic)
-
                 if is_answer_valid(query, answer, documents):
                     return {"answer": answer, "feedback": None} 
                 else:
@@ -171,39 +137,67 @@ class Tasks:
                 return translation
                 """
             ),
-            args={"answer": "{answer}", "input_language": "{input_language}", "cache": self.config.cache, "translator": Translator(self.config.cache, self.config.tokenizers, self.config.models)},
+            args={"answer": "{answer}", "input_language": "{input_language}", "cache": self.config.cache, "translator": Translator(self.config.cache, self.config.tokenizer, self.config.models)},
         )
 
-    def construct_email_response_task(self):
+    def display_answer_in_chat_task(self):
         return Task(
-            name="construct_email_response",
+            name="display_answer_in_chat",
             tool_code=tool_code(
                 """
-                # Include UID and problems (if any) in the email
-                email_body = f"Answer:\n{answer}\n\nReference ID: {uid}"
-                if problems:
-                    email_body += f"\n\nIdentified problems: {problems}"
-                return email_body
-                """
-            ), 
-            args={"answer": "{answer}", "uid": "{uid}", "problems": "{problems}"},
-        )
+                # Display the answer in the chat interface (using curses)
+                display_answer_in_terminal(answer)
 
-    def send_email_and_update_db_task(self):
-        return Task(
-            name="send_email_and_update_db",
-            tool_code=tool_code(
-                """
-                # Send the email using the local mail server
-                # ... (Implement your email sending logic)
-                send_email(user_email, "Answer to your question", email_body)
-
-                # Update the database
+                # Update DB for chat interactions
                 status = "answered" if problems is None else "answered_with_problems"
                 update_interaction_in_db(uid, answer, status)
-
-                return "Email sent successfully."
                 """
             ),
-            args={"email_body": "{email_body}", "user_email": "{user_email}", "uid": "{uid}", "problems": "{problems}"},
+            args={"answer": "{answer}", "problems": "{problems}", "uid": "{uid}", "cursor": self.config.cursor, "conn": self.config.conn},
         )
+
+# Helper function for chat interface (using curses)
+def get_user_input_from_terminal():
+    # ... (Implementation using curses to get user input)
+    pass
+
+def display_answer_in_terminal(answer):
+    # ... (Implementation using curses to display the answer)
+    pass
+
+def store_interaction_in_db(uid, question=None, answer=None, status="received", other_metadata=None):
+    """
+    This function should implement the logic to store the interaction details in your database.
+    You'll likely need to use your database cursor to execute an INSERT query.
+
+    Args:
+        uid: The unique identifier for the interaction.
+        question: The question submitted by the user (optional).
+        answer: The answer generated by the system (optional).
+        status: The status of the interaction (default is "received").
+        other_metadata: Any additional metadata you want to store (optional).
+    """
+
+    cursor.execute('''
+        INSERT INTO email_interactions (uid, timestamp, question, answer, status, other_metadata)
+        VALUES (?, datetime('now'), ?, ?, ?, ?)
+    ''', (uid, question, answer, status, other_metadata))
+    conn.commit()
+
+def update_interaction_in_db(uid, answer, status):
+    """
+    This function should implement the logic to update an existing interaction in your database.
+    You'll likely need to use your database cursor to execute an UPDATE query.
+
+    Args:
+        uid: The unique identifier for the interaction.
+        answer: The updated answer to be stored.
+        status: The updated status of the interaction.
+    """
+
+    cursor.execute('''
+        UPDATE email_interactions
+        SET answer = ?, status = ?
+        WHERE uid = ?
+    ''', (answer, status, uid))
+    conn.commit()

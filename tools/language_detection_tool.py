@@ -19,5 +19,5 @@ class LanguageDetectionTool(BaseTool):
         # ...
 
         # For illustration, let's assume English as the default
-        print(f"Failed to detect language for text: {text}")  # Log the failure for debugging
-        return 'en'  # Return 'en' as the default language
+        print(f"Failed to detect language for text: {text}") 
+        return 'en'

@@ -1,19 +1,44 @@
+from typing import Optional, List
+
 from langchain.tools import BaseTool
 from langchain.chains import RetrievalQA
-# Replace with your offline LLM interface
-from langchain.llms import OpenAI 
+from langchain.docstore.document import Document
+from langchain.llms import BaseLLM  # Import the base LLM class
 
 class DocumentAnswerer(BaseTool):
+    """
+    This tool answers questions based on the documents provided.
+    """
+
     name = "document_answerer"
     description = "Answers questions based on the documents provided"
 
-    def __init__(self, vectorstore, cache, llm):
+    def __init__(self, vectorstore, cache, llm: BaseLLM):
+        """
+        Initialize the DocumentAnswerer with necessary components.
+
+        Args:
+            vectorstore: The vectorstore containing the embedded documents.
+            cache: The cache object for storing and retrieving answers.
+            llm: The offline LLM instance for generating answers
+        """
         super().__init__()
         self.vectorstore = vectorstore
         self.cache = cache
-        self.llm = llm  # Your offline LLM instance
+        self.llm = llm
 
-    def _run(self, query, context=None):
+    def _run(self, query: str, context: Optional[List[dict]] = None) -> str:
+        """
+        Answer the query based on the provided documents and context.
+
+        Args:
+            query: The question to be answered
+            context: Optional context from previous interactions (for follow-up questions)
+
+        Returns:
+            The answer to the query, including references to the documents used
+        """
+
         # 1. Check cache for existing answer
         cache_key = self._get_cache_key(query, context)
         cached_answer = self.cache.get(cache_key)
@@ -23,7 +48,7 @@ class DocumentAnswerer(BaseTool):
         # 2. Retrieve relevant documents
         retriever = self.vectorstore.as_retriever()
         if context:
-            # If context is provided (follow-up question), include it in the retrieval
+            # If context is provided, include it in the retrieval
             docs = retriever.get_relevant_documents(query, context)
         else:
             docs = retriever.get_relevant_documents(query)
@@ -33,9 +58,9 @@ class DocumentAnswerer(BaseTool):
             llm=self.llm, 
             chain_type="stuff",  # Adjust chain_type if needed for your LLM
             retriever=retriever, 
-            return_source_documents=True  # To get the documents used for references
+            return_source_documents=True 
         )
-        result = qa_chain({"query": query, "chat_history": context})  # Include context if available
+        result = qa_chain({"query": query, "chat_history": context}) 
 
         # 4. Format references
         used_documents = result["source_documents"]
@@ -47,8 +72,18 @@ class DocumentAnswerer(BaseTool):
 
         return answer_with_references
 
-    def _get_cache_key(self, query, context=None):
-        # Generate a unique cache key based on the query and context
+    def _get_cache_key(self, query: str, context: Optional[List[dict]] = None) -> str:
+        """
+        Generate a unique cache key based on the query and context
+
+        Args:
+            query: The question to be answered
+            context: Optional context from previous interactions
+
+        Returns:
+            A unique string representing the cache key
+        """
+
         if context:
             return f"{query}_{hash(str(context))}" 
         else:
