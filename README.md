@@ -133,6 +133,102 @@ The system's modular architecture comprises interconnected components, each fulf
     * Gets user input, generates UIDs for new chat sessions, and retrieves context for follow-up questions
     * Adds chat requests to the queue for processing
 
+### M3 Mac Quick Setup
+
+1.  **Clone the repository:**
+
+    ```bash
+    git clone https://code.ornl.gov/6cq/offline-multilingual-question-answering-system
+    ```
+
+2.  **Navigate to the project directory:**
+
+    ```bash
+    cd offline-multilingual-question-answering-system
+    ```
+
+3.  **Create a document upload folder:**
+
+    *  Create a folder named `uploads` at the root level of the project.
+
+4.  **Add your documents:**
+
+    *  Place your documents (e.g., plain text files) in the `uploads` folder.
+
+5.  **Run the setup script:**
+
+    ```bash
+    ./MacM3setup.sh  # This will execute the setup script
+    ```
+
+    This script will perform the following actions:
+
+    *   **Create and activate a virtual environment:**
+
+        *   It creates a virtual environment named `offlineqa-env` using `python3 -m venv`.
+        *   It activates the virtual environment using `source offlineqa-env/bin/activate`.
+
+    *   **Install dependencies:**
+
+        *   It installs the required Python packages listed in `requirements.txt` using `pip install -r requirements.txt`.
+
+    *   **Download and organize models:**
+
+        *   It creates the necessary directories for storing the models (`models/translation`, `models/llm`, `models/embedding`).
+        *   It downloads the translation models (MarianMT) for the supported language pairs using the `transformers` library.
+        *   It downloads the Vicuna-7B LLM and its tokenizer.
+        *   It downloads the SentencePiece tokenizer.
+
+    *   **Prepare your document collection:**
+
+        *   It loads and preprocesses documents from the `uploads` folder using `DirectoryLoader` and `RecursiveCharacterTextSplitter`.
+        *   It generates embeddings for the documents using the `all-MiniLM-L6-v2` embedding model (recommended for Vicuna) and stores them in a FAISS index.
+        *   It saves the FAISS index to disk (`data/faiss_index`).
+
+    *   **Download the spaCy language model and enable the coherence pipe:**
+
+        *   It downloads the `en_core_web_sm` language model for spaCy using `python -m spacy download en_core_web_sm`.
+        *   It downloads the coreference resolution data for spaCy using `python -m spacy_experimental.coref.download en`.
+
+    *   **Set up and start Redis and PostgreSQL:**
+
+        *   It installs Redis and PostgreSQL using Homebrew.
+        *   It starts the Redis and PostgreSQL servers.
+        *   It creates a database and user in PostgreSQL.
+
+6.  **Run the main program:**
+
+    ```bash
+    python main.py
+    ```
+
+    The system will start running, presenting the terminal-based chat interface for user interaction.
+
+
+### Running the System
+
+1.  **Initial Setup:**
+    *   If you haven't already, follow the installation instructions to set up the system and its dependencies.
+
+2.  **Starting the System:**
+    *   Execute the `MacM3restart.sh` script to start the Redis and PostgreSQL servers and run the main program:
+
+        ```bash
+        ./MacM3restart.sh
+        ```
+
+    *   The system will start running, presenting the terminal-based chat interface for user interaction.
+
+3.  **Restarting the System:**
+    *   If you need to restart the system (e.g., after making changes to the code or configuration), you can use the same `MacM3restart.sh` script:
+
+        ```bash
+        ./MacM3restart.sh
+        ```
+
+    *   This script will restart the Redis and PostgreSQL servers and then re-run the main program.
+
+
 ## Getting Started
 
 ### Prerequisites
