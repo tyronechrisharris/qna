@@ -33,103 +33,105 @@ This system is designed to provide a seamless and informative question-answering
 
 ## Features
 
-- **Offline Operation:** Functions entirely without an internet connection, ensuring data privacy and availability.
-- **Multilingual Support:** Handles questions and provides answers in multiple languages (Spanish, French, German, Thai, Russian, Arabic, Portuguese, Mandarin).
-- **Contextual Understanding:** Maintains conversation history within chat sessions to provide more relevant and coherent responses to follow-up questions.
-- **Self-Correction:** Employs a retry mechanism to iteratively refine answers, minimizing hallucinations and improving accuracy.
-- **Terminal-Based Chat Interface:** Offers a user-friendly, real-time chat interface for interaction.
-- **UID Tracking & Database:** Assigns unique identifiers to each interaction, facilitating tracking, analysis, and debugging.
-- **Caching:** Enhances performance by storing and reusing previous results.
-- **Document Referencing:** Provides transparency by citing the sources used to generate answers.
-- **Efficient Multilingual Tokenizer:** Utilizes SentencePiece for efficient handling of multiple languages.
-- **Offline LLM:** Leverages the Vicuna-7B model for powerful language understanding and answer generation capabilities in an offline setting.
-- **Queue-Based Processing:** Handles multiple chat requests concurrently, ensuring fair and efficient processing.
+* Offline Operation: Functions entirely without an internet connection, ensuring data privacy and availability.
+* Multilingual Support: Handles questions and provides answers in multiple languages (Spanish, French, German, Thai, Russian, Arabic, Portuguese, Mandarin).
+* Contextual Understanding: Maintains conversation history within chat sessions to provide more relevant and coherent responses to follow-up questions.
+* Self-Correction: Employs a retry mechanism to iteratively refine answers, minimizing hallucinations and improving accuracy.
+* Terminal-Based Chat Interface: Offers a user-friendly, real-time chat interface for interaction.
+* UID Tracking & Database: Assigns unique identifiers to each interaction, facilitating tracking, analysis, and debugging.
+* Caching: Enhances performance by storing and reusing previous results.
+* Document Referencing: Provides transparency by citing the sources used to generate answers.
+* Efficient Multilingual Tokenizer: Utilizes SentencePiece for efficient handling of multiple languages.
+* Offline LLM: Leverages the Vicuna-7B model for powerful language understanding and answer generation capabilities in an offline setting.
+* Queue-Based Processing: Handles multiple chat requests concurrently, ensuring fair and efficient processing.
+
+![image](/CRAIG_Graph.svg)
 
 ## System Architecture
 
 The system's modular architecture comprises interconnected components, each fulfilling a specific role in the question-answering process.
 
-*   **`Config`**: Centralizes configuration and setup, including loading models, database connection, cache initialization.
-*   **`Tasks`**: Defines the Langgraph tasks and their dependencies, representing the system's workflow.
-*   **Tools:** Encapsulate the functionality of different components, facilitating modularity and reusability.
-    *   **`LanguageDetectionTool`:** Identifies the input language.
-    *   **`Translator`:** Handles translation between supported languages and English.
-    *   **`DocumentAnswerer`:** Retrieves relevant documents and generates answers using the offline LLM.
-    *   **`SelfCorrectiveAgent`:** Evaluates answers and triggers retries if needed.
-    *   **`ChatInputTool`:** Handles user input from the terminal-based chat interface.
+* **`Config`**: Centralizes configuration and setup, including loading models, database connection, cache initialization.
+* **`Tasks`**: Defines the Langgraph tasks and their dependencies, representing the system's workflow.
+* **Tools:** Encapsulate the functionality of different components, facilitating modularity and reusability.
+    * **`LanguageDetectionTool`:** Identifies the input language.
+    * **`Translator`:** Handles translation between supported languages and English.
+    * **`DocumentAnswerer`:** Retrieves relevant documents and generates answers using the offline LLM.
+    * **`SelfCorrectiveAgent`:** Evaluates answers and triggers retries if needed.
+    * **`ChatInputTool`:** Handles user input from the terminal-based chat interface.
 
 ## Components
 
 ### `Config` (`config.py`)
 
-*   **Purpose:** Centralizes configuration and setup for the system
-*   **Functionality:**
-    *   Loads offline translation models (MarianMT) for supported language pairs using the SentencePiece tokenizer
-    *   Loads the local embedded document collection using the specified embedding model (sentence-transformers/all-MiniLM-L6-v2)
-    *   Initializes the database connection and creates the necessary table
-    *   Sets up an in-memory cache (can be replaced with a more robust solution)
-    *   Loads the offline LLM (Vicuna-7B)
+* **Purpose:** Centralizes configuration and setup for the system
+* **Functionality:**
+    * Loads offline translation models (MarianMT) for supported language pairs using the SentencePiece tokenizer
+    * Loads the local embedded document collection using the specified embedding model (sentence-transformers/all-MiniLM-L6-v2)
+    * Initializes the database connection and creates the necessary table
+    * Sets up a Redis cache
+    * Loads the offline LLM (Vicuna-7B)
 
 ### `Tasks` (`tasks.py`)
 
-*   **Purpose:** Defines the Langgraph tasks and their dependencies, forming the system's workflow
-*   **Tasks**
-    *   `chat_input_task`: Gets user input from the chat interface and adds it to the request queue
-    *   `detect_language_task`: Detects the language of the input question
-    *   `translate_to_english_task`: Translates the question to English if needed
-    *   `retrieve_documents_task`: Retrieves relevant documents from the local collection
-    *   `generate_answer_task`: Generates an answer using the offline LLM and retrieved documents
-    *   `self_correct_task`: Evaluates the answer and triggers retries if necessary
-    *   `translate_to_user_language_task`: Translates the answer back to the original language if needed
-    *   `display_answer_in_chat_task`: Displays the answer in the chat interface and updates the database
-*   **Key Considerations:**
-    *   The `tool_code` blocks within each task contain the actual logic for performing the task. You'll need to fill in the placeholders with your specific implementations
-    *   The `args` dictionaries define how data flows between tasks, specifying which outputs from one task are passed as inputs to another
+* **Purpose:** Defines the Langgraph tasks and their dependencies, forming the system's workflow
+* **Tasks**
+    * `chat_input_task`: Gets user input from the chat interface and adds it to the request queue
+    * `detect_language_task`: Detects the language of the input question
+    * `translate_to_english_task`: Translates the question to English if needed
+    * `retrieve_documents_task`: Retrieves relevant documents from the local collection
+    * `generate_answer_task`: Generates an answer using the offline LLM and retrieved documents
+    * `self_correct_task`: Evaluates the answer and triggers retries if necessary
+    * `translate_to_user_language_task`: Translates the answer back to the original language if needed
+    * `display_answer_in_chat_task`: Displays the answer in the chat interface and updates the database
+* **Key Considerations:**
+    * The `tool_code` blocks within each task contain the actual logic for performing the task. 
+    * The `args` dictionaries define how data flows between tasks, specifying which outputs from one task are passed as inputs to another
 
 ### Tools
 
 #### Language Detection Tool (`language_detection_tool.py`)
 
-*   **Purpose:** Identifies the language of the input text
-*   **Functionality:**
-    *   Uses the `langdetect` library to detect the language
-    *   Handles potential detection failures with a fallback strategy (currently assumes English as the default)
+* **Purpose:** Identifies the language of the input text
+* **Functionality:**
+    * Uses the `langdetect` library to detect the language
+    * Handles potential detection failures with a fallback strategy (currently assumes English as the default)
 
 #### Translator (`translator.py`)
 
-*   **Purpose:** Handles translation between supported languages and English
-*   **Functionality:**
-    *   Uses the SentencePiece tokenizer and pre-trained MarianMT models loaded in `config.py`
-    *   Caches translations for efficiency
-    *   Detects the source language if the target language is English
-    *   Handles unsupported language pairs with an error message
+* **Purpose:** Handles translation between supported languages and English
+* **Functionality:**
+    * Uses the SentencePiece tokenizer and pre-trained MarianMT models loaded in `config.py`
+    * Caches translations for efficiency
+    * Detects the source language if the target language is English
+    * Handles unsupported language pairs with an error message
 
 #### Document Answerer (`document_answerer.py`)
 
-*   **Purpose:** Retrieves relevant documents and generates answers
-*   **Functionality:**
-    *   Uses the local vectorstore to retrieve documents semantically similar to the query
-    *   Incorporates context from previous interactions for follow-up questions
-    *   Generates answers using the offline LLM
-    *   Caches answers for efficiency
-    *   Includes references to the documents used in the response
+* **Purpose:** Retrieves relevant documents and generates answers
+* **Functionality:**
+    * Uses the local vectorstore to retrieve documents semantically similar to the query
+    * Incorporates context from previous interactions for follow-up questions
+    * Generates answers using the offline LLM
+    * Caches answers for efficiency
+    * Includes references to the documents used in the response
 
 #### Self-Corrective Agent (`self_corrective_agent.py`)
 
-*   **Purpose:** Evaluates the quality of generated answers
-*   **Functionality:**
-    *   Checks for hallucinations, coherence, and sense
-    *   Optionally, performs factual accuracy checks (requires additional implementation)
-    *   Triggers retries with feedback to the Document Retriever if the answer is not acceptable (up to 3 retries)
-    *   If max retries are reached, passes the answer along with identified problems
+* **Purpose:** Evaluates the quality of generated answers
+* **Functionality:**
+    * Checks for hallucinations, coherence, and sense
+    * Optionally, performs factual accuracy checks (requires additional implementation)
+    * Triggers retries with feedback to the Document Retriever if the answer is not acceptable (up to 3 retries)
+    * If max retries are reached, passes the answer along with identified problems
 
 #### Chat Input Tool (`chat_input_tool.py`)
 
-*   **Purpose:** Handles user input from the terminal-based chat interface
-*   **Functionality:**
-    *   Uses the `curses` library to create an interactive chat window in the terminal
-    *   Gets user input, generates UIDs for new chat sessions, and retrieves context for follow-up questions
-    *   Adds chat requests to the queue for processing
+* **Purpose:** Handles user input from the terminal-based chat interface
+* **Functionality:**
+    * Uses the `curses` library to create an interactive chat window in the terminal
+    * Gets user input, generates UIDs for new chat sessions, and retrieves context for follow-up questions
+    * Adds chat requests to the queue for processing
 
 ## Getting Started
 
@@ -196,7 +198,6 @@ The system's modular architecture comprises interconnected components, each fulf
     ```
 
 *   **Optional Libraries:** 
-    *   If you plan to implement the email functionality in the future, you'll also need to install libraries for interacting with the Outlook 365 API (e.g., `requests_oauthlib` and `microsoft-graph`).
     *   If you choose a different caching solution than the basic in-memory cache, install the necessary library for that (e.g., `redis` for Redis).
 
 
@@ -205,7 +206,7 @@ The system's modular architecture comprises interconnected components, each fulf
 1.  **Clone the repository:**
 
     ```bash
-    git clone [https://code.ornl.gov/6cq/offline-multilingual-question-answering-system](https://code.ornl.gov/6cq/offline-multilingual-question-answering-system)
+    git clone https://code.ornl.gov/6cq/offline-multilingual-question-answering-system
     ```
 
 2.  **Navigate to the project directory:**
@@ -217,7 +218,7 @@ The system's modular architecture comprises interconnected components, each fulf
 3.  **Create a virtual environment:**
 
     ```bash
-    python -m venv myenv  # Replace 'myenv' with your preferred environment name
+    python -m venv offlineqa-env  # Create an environment named 'offlineqa-env'
     ```
 
 4.  **Activate the virtual environment:**
@@ -225,13 +226,13 @@ The system's modular architecture comprises interconnected components, each fulf
     *   **On Windows:**
 
         ```bash
-        myenv\Scripts\activate
+        offlineqa-env\Scripts\activate
         ```
 
     *   **On macOS/Linux:**
 
         ```bash
-        source myenv/bin/activate
+        source offlineqa-env/bin/activate
         ```
 
 5.  **Install dependencies using the provided `requirements.txt` file:**
@@ -330,6 +331,63 @@ The system's modular architecture comprises interconnected components, each fulf
 
     *   This code snippet demonstrates how to load documents from the `uploads` folder, split them into chunks, generate embeddings using the `all-MiniLM-L6-v2` model (recommended for Vicuna), and store them in a FAISS index.
 
+8. **Download the spaCy language model and enable the coherence pipe:**
+
+    ```bash
+    python -m spacy download en_core_web_sm
+    python -m spacy_experimental.coref.download en  # Download the coreference resolution data
+    ```
+
+9. **Set up Redis (if using Redis for caching):**
+
+    *   **On Windows:** Download and install Redis from the official website: [https://redis.io/download/](https://redis.io/download/). Follow the instructions provided on the website for Windows installation.
+    *   **On macOS:**
+        ```bash
+        brew install redis
+        ```
+    *   **On Ubuntu:**
+        ```bash
+        sudo apt update
+        sudo apt install redis-server
+        ```
+    *   **Start the Redis server:** Follow the platform-specific instructions to start the Redis server.
+
+10. **Set up PostgreSQL (if using PostgreSQL for the database):**
+
+    *   **On Windows:** Download and install PostgreSQL from the official website: [https://www.postgresql.org/download/](https://www.postgresql.org/download/). Follow the instructions provided on the website for Windows installation.
+    *   **On macOS:**
+        ```bash
+        brew install postgresql
+        brew services start postgresql
+        ```
+    *   **On Ubuntu:**
+        ```bash
+        sudo apt update
+        sudo apt install postgresql postgresql-contrib
+        ```
+    *   **Create a database and user:**
+        ```bash
+        sudo -u postgres psql  # Access PostgreSQL shell
+        CREATE DATABASE my_qna_db;
+        CREATE USER my_qna_user WITH ENCRYPTED PASSWORD 'your_password';
+        GRANT ALL PRIVILEGES ON DATABASE my_qna_db TO my_qna_user;
+        \q  # Exit the shell
+        ```
+    *   Update the database connection details in the `_initialize_database` method in `config.py` with your PostgreSQL credentials.
+
+11. **Start Redis and PostgreSQL servers (if applicable):**
+
+    *   **On Windows:** Use the services management console or the command line to start the Redis and PostgreSQL services.
+    *   **On macOS:**
+        ```bash
+        brew services start redis
+        brew services start postgresql
+        ```
+    *   **On Ubuntu:**
+        ```bash
+        sudo systemctl start redis-server
+        sudo systemctl start postgresql
+        ```
 
 ### Configuration
 
@@ -342,7 +400,7 @@ The system's modular architecture comprises interconnected components, each fulf
 2.  **Tool Implementations**
     *   In `document_answerer.py`, ensure the  `_run`  method uses your actual offline LLM interface.
     *   Customize the  `SelfCorrectiveAgent`  in  `self_corrective_agent.py`  with your desired evaluation logic and thresholds.
-    *   Implement the chat interface logic in  `chat_input_tool.py`  and the  `display_answer_in_chat_task`  in  `tasks.py`  using the  `curses`  library or a similar approach.
+    *   The chat interface logic in  `chat_input_tool.py`  and the  `display_answer_in_chat_task`  in  `tasks.py`  are already implemented using the  `curses`  library.
 
 ### Running the System
 
@@ -391,9 +449,6 @@ This project is licensed under the [MIT License](LICENSE)
     *   If you have domain-specific data, explore fine-tuning the Vicuna-7B LLM to enhance its accuracy and relevance for your particular use case.
 *   **Enhance Self-Correction:**
     *   Investigate and implement more advanced techniques for hallucination detection, coherence assessment, and fact-checking to further improve the quality of generated answers.
-*   **Implement Robust Caching:** 
-    *   Replace the simple in-memory cache with a more production-ready solution like Redis or Memcached, especially if you anticipate high volumes of interactions.
-    *   Implement proper cache expiration and invalidation strategies to manage memory usage and ensure answer freshness.
 *   **Expand Document Collection:**
     *   Continuously update and expand your embedded document collection to cover a wider range of topics and domains, making the system more knowledgeable and versatile.
 *   **User Feedback Mechanism:**

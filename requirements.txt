@@ -6,19 +6,26 @@ langdetect==1.0.9
 transformers==4.31.0
 
 # Database (SQLite3 is usually included by default)
-# sqlite3 
+# sqlite3
+psycopg2-binary  # For PostgreSQL
 
 # Caching (Choose one based on your preference)
 # - In-memory cache (no additional library needed)
 # - Redis: 
-# redis
+redis
 
 # Offline LLM (Vicuna-7B)
 torch==2.1.0
 accelerate==0.23.0
 bitsandbytes==0.41.0
 
-# Other potential dependencies (add as needed)
+# Other potential dependencies 
 numpy==1.26.0
 pandas==2.1.1
-# ... any other libraries used in your custom tool implementations
+curses              # For terminal-based chat interface
+
+# For spaCy
+spacy-experimental==0.6.0  
+
+# You may need to install specific language models for spaCy, e.g.,
+# python -m spacy download en_core_web_sm 

@@ -1,3 +1,4 @@
+import logging
 import sqlite3
 
 from langchain.embeddings import HuggingFaceEmbeddings
@@ -10,23 +11,49 @@ from transformers import (
     AutoModelForCausalLM,
     pipeline,
 )
+from redis import Redis  # Import Redis library
+
+# Set up logging
+logging.basicConfig(filename='qna_system.log', level=logging.ERROR, 
+                    format='%(asctime)s - %(levelname)s - %(filename)s - %(message)s')
+
 
 class Config:
     def __init__(self):
         # 1. Load Offline Translation Models
-        self.tokenizer, self.models = self._load_translation_models()
+        try:
+            self.tokenizer, self.models = self._load_translation_models()
+        except Exception as e:
+            logging.error(f"Error loading translation models: {e}")
+            raise
 
         # 2. Load Embedded Document Collection
-        self.vectorstore = self._load_document_collection()
+        try:
+            self.vectorstore = self._load_document_collection()
+        except Exception as e:
+            logging.error(f"Error loading document collection: {e}")
+            raise
 
         # 3. Initialize Database Connection
-        self.conn, self.cursor = self._initialize_database()
+        try:
+            self.conn, self.cursor = self._initialize_database()
+        except Exception as e:
+            logging.error(f"Error initializing database: {e}")
+            raise
 
-        # 4. Initialize Cache
-        self.cache = {}  
+        # 4. Initialize Redis Cache
+        try:
+            self.cache = Redis(host='localhost', port=6379, db=0)  # Configure Redis connection
+        except Exception as e:
+            logging.error(f"Error connecting to Redis: {e}")
+            raise
 
         # 5. Load LLM 
-        self.llm = self._load_llm()
+        try:
+            self.llm = self._load_llm()
+        except Exception as e:
+            logging.error(f"Error loading LLM: {e}")
+            raise
 
     def _load_translation_models(self):
         # Define language codes and model names 

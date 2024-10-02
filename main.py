@@ -1,5 +1,6 @@
 import time
 import queue
+import logging
 
 from langgraph import Graph
 
@@ -10,6 +11,10 @@ from tools.translator import Translator
 from tools.document_answerer import DocumentAnswerer
 from tools.self_corrective_agent import SelfCorrectiveAgent
 from tools.chat_input_tool import ChatInputTool, get_user_input_from_terminal, display_answer_in_terminal
+
+# Set up logging
+logging.basicConfig(filename='qna_system.log', level=logging.ERROR, 
+                    format='%(asctime)s - %(levelname)s - %(filename)s - %(message)s')
 
 # 3. Main Program
 
@@ -53,52 +58,78 @@ class QuestionAnsweringSystem:
 
     def run(self):
         while True:
-            # 1. Check for new chat requests
-            self.graph.execute(inputs={
-                "request_queue": self.request_queue, 
-                "cache": self.config.cache
-            })
+            try:
+                # 1. Check for new chat requests
+                self.graph.execute(inputs={
+                    "request_queue": self.request_queue, 
+                    "cache": self.config.cache,
+                    "current_chat_uid": None 
+                })
 
-            # 2. Process requests from the queue
-            while not self.request_queue.empty():
-                request = self.request_queue.get()
-                _, question, uid, context, _ = request  # Ignore 'source' and 'user_email' 
+                # 2. Process requests from the queue
+                while not self.request_queue.empty():
+                    request = self.request_queue.get()
+                    _, question, uid, context, _ = request 
 
-                # 3. Process the chat request
-                input_language = language_detection_tool.run(question)
-                retry_count = 0
+                    # 3. Process the chat request
+                    try:
+                        input_language = language_detection_tool.run(question)
+                    except Exception as e:
+                        logging.error(f"Error during language detection: {e}")
+                        display_answer_in_terminal("Error: Could not detect language.")
+                        continue
 
-                while retry_count < 3:
-                    if input_language != 'en':
-                        question = translator.run(question) 
+                    retry_count = 0
 
-                    documents = document_retriever.run(question)
-                    answer = document_answerer.run(question, documents, context)
-                    answer, feedback_or_problems = self_corrective_agent.run(question, answer, documents, retry_count)
+                    while retry_count < 3:
+                        try:
+                            if input_language != 'en':
+                                question = translator.run(question) 
+                        except Exception as e:
+                            logging.error(f"Error during translation to English: {e}")
+                            display_answer_in_terminal("Error: Could not translate to English.")
+                            break 
 
-                    if feedback_or_problems is None:
-                        break 
+                        try:
+                            documents = document_retriever.run(question)
+                            answer = document_answerer.run(question, documents, context)
+                            answer, feedback_or_problems = self_corrective_agent.run(question, answer, documents, retry_count)
+                        except Exception as e:
+                            logging.error(f"Error during answer generation: {e}")
+                            display_answer_in_terminal("Error: Could not generate an answer.")
+                            break 
 
-                    if isinstance(feedback_or_problems, str):
-                        answer += f"\n\nIdentified problems: {feedback_or_problems}"
-                        break
+                        if feedback_or_problems is None:
+                            break 
 
-                    retry_count += 1
-                    documents = document_retriever.run(question, feedback_or_problems)
-                    answer = document_answerer.run(question, documents, context)
+                        if isinstance(feedback_or_problems, str):
+                            answer += f"\n\nIdentified problems: {feedback_or_problems}"
+                            break
 
-                if input_language != 'en':
-                    answer = translator.run(answer, target_language=input_language) 
+                        retry_count += 1
+                        documents = document_retriever.run(question, feedback_or_problems)
+                        answer = document_answerer.run(question, documents, context)
 
-                # Display the answer in the chat interface
-                display_answer_in_terminal(answer)
+                    try:
+                        if input_language != 'en':
+                            answer = translator.run(answer, target_language=input_language) 
+                    except Exception as e:
+                        logging.error(f"Error during translation to original language: {e}")
+                        display_answer_in_terminal("Error: Could not translate to original language.")
+                        continue 
 
-                # Update cache with context for potential follow-up questions
-                self.config.cache.set(uid, {"question": question, "documents": documents, "answer": answer})
+                    # Display the answer in the chat interface
+                    display_answer_in_terminal(answer)
 
-                # Update DB for chat interactions
-                status = "answered" if feedback_or_problems is None else "answered_with_problems"
-                self.tasks.update_interaction_in_db(uid, answer, status)
+                    # Update cache with context
+                    self.config.cache.set(uid, {"question": question, "documents": documents, "answer": answer})
+
+                    # Update DB for chat interactions
+                    status = "answered" if feedback_or_problems is None else "answered_with_problems"
+                    self.tasks.update_interaction_in_db(uid, answer, status)
+
+            except Exception as e:
+                logging.error(f"An unexpected error occurred: {e}")
 
             time.sleep(1)  # Adjust the interval as needed
 

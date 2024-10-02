@@ -1,3 +1,5 @@
+import logging
+
 from langchain.tools import BaseTool
 from sentence_transformers import SentenceTransformer, util
 import spacy
@@ -15,8 +17,12 @@ class SelfCorrectiveAgent(BaseTool):
         Initialize the SelfCorrectiveAgent with necessary models.
         """
         super().__init__()
-        self.similarity_model = SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2') 
-        self.nlp = spacy.load("en_core_web_sm")
+        try:
+            self.similarity_model = SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2') 
+            self.nlp = spacy.load("en_core_web_sm")
+        except Exception as e:
+            logging.error(f"Error initializing SelfCorrectiveAgent: {e}")
+            raise
 
     def _run(self, query: str, answer: str, documents: list, retry_count: int = 0) -> tuple:
         """
@@ -35,15 +41,19 @@ class SelfCorrectiveAgent(BaseTool):
                 - A description of the problems if retry_count >= 3 and the answer is not valid
         """
 
-        if self.is_answer_valid(query, answer, documents):
-            return answer, None  # Answer is acceptable
-        else:
-            if retry_count < 3:
-                feedback = self.generate_feedback(query, answer, documents)
-                return None, feedback  # Answer needs improvement
+        try:
+            if self.is_answer_valid(query, answer, documents):
+                return answer, None  # Answer is acceptable
             else:
-                problems_description = self.describe_problems(answer)
-                return answer, problems_description  # Max retries reached
+                if retry_count < 3:
+                    feedback = self.generate_feedback(query, answer, documents)
+                    return None, feedback  # Answer needs improvement
+                else:
+                    problems_description = self.describe_problems(query, answer, documents)
+                    return answer, problems_description  # Max retries reached
+        except Exception as e:
+            logging.error(f"Error in SelfCorrectiveAgent: {e}")
+            return "Error: Could not evaluate the answer.", None  # Return an error message
 
     def is_answer_valid(self, query: str, answer: str, documents: list) -> bool:
         """
@@ -66,23 +76,11 @@ class SelfCorrectiveAgent(BaseTool):
         if not self.is_answer_coherent(answer):
             return False
 
-        # 3. Factual Accuracy Check (Optional, if you have a fact-checking library)
-        # if not check_facts(answer):
-        #     return False
-
         return True
 
     def is_answer_grounded(self, query: str, answer: str, documents: list) -> bool:
         """
         Checks if the answer is grounded in the provided documents using semantic similarity.
-
-        Args:
-            query: The original question
-            answer: The generated answer
-            documents: The list of documents used
-
-        Returns:
-            True if the answer is grounded, False otherwise
         """
 
         query_embedding = self.similarity_model.encode(query)
@@ -99,12 +97,6 @@ class SelfCorrectiveAgent(BaseTool):
     def is_answer_coherent(self, answer: str) -> bool:
         """
         Checks if the answer is coherent and makes sense using basic NLP techniques.
-
-        Args:
-            answer: The generated answer
-
-        Returns:
-            True if the answer is coherent, False otherwise
         """
 
         doc = self.nlp(answer)
@@ -113,48 +105,29 @@ class SelfCorrectiveAgent(BaseTool):
     def generate_feedback(self, query: str, answer: str, documents: list) -> str:
         """
         Generates feedback to the Document Retriever based on the identified issues.
-
-        Args:
-            query: The original question
-            answer: The generated answer
-            documents: The list of documents used
-
-        Returns:
-            A feedback message explaining the problems with the answer
         """
 
-        feedback = ""
+        feedback = "The answer needs improvement. Please consider the following:\n"
 
-        if not self.is_answer_grounded(answer, documents):
-            feedback += "The answer seems to contain information not present in the provided documents. "
+        if not self.is_answer_grounded(query, answer, documents):
+            feedback += "- The answer seems to contain information not present in the provided documents.\n"
 
         if not self.is_answer_coherent(answer):
-            feedback += "The answer is not clear or logically consistent. "
+            feedback += "- The answer is not clear or logically consistent.\n"
 
-        # Optional: Add factual accuracy feedback if you have a fact-checking library
-
-        feedback += "Please try to generate a more relevant and accurate answer based on the given documents."
         return feedback
 
-    def describe_problems(self, answer: str) -> str:
+    def describe_problems(self, query: str, answer: str, documents: list) -> str:
         """
         Provides a concise description of the problems identified in the answer.
-
-        Args:
-            answer: The generated answer
-
-        Returns:
-            A comma-separated string listing the identified problems
         """
 
         problems = []
 
-        if not self.is_answer_grounded(answer, documents):
+        if not self.is_answer_grounded(query, answer, documents):
             problems.append("Potential hallucinations (information not found in the documents)")
 
         if not self.is_answer_coherent(answer):
             problems.append("Incoherence or lack of clarity")
-
-        # Optional: Add factual accuracy problems if you have a fact-checking library
 
         return ", ".join(problems)
