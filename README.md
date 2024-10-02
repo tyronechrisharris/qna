@@ -158,6 +158,9 @@ The system's modular architecture comprises interconnected components, each fulf
 5.  **Run the setup script:**
 
     ```bash
+    chmod +x MacM3setup.sh
+    ```
+    ```bash
     ./MacM3setup.sh  # This will execute the setup script
     ```
 
@@ -197,7 +200,9 @@ The system's modular architecture comprises interconnected components, each fulf
         *   It creates a database and user in PostgreSQL.
 
 6.  **Run the main program:**
-
+    ```bash
+    chmod +x MacM3restart.sh
+    ```
     ```bash
     python main.py
     ```
