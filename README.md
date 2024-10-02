@@ -503,6 +503,8 @@ docker run -it \
        -p 6379:6379 \  # Map Redis port
        offline-qna-system
 
+```
+
 ## Contributing
 
 Contributions to improve and enhance this system are welcome! Please follow these guidelines:
