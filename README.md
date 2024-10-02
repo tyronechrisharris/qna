@@ -426,6 +426,83 @@ The system's modular architecture comprises interconnected components, each fulf
 *   **Translation Errors:** If translations are inaccurate, try using different pre-trained models or fine-tune them on your specific domain.
 *   **Hallucinations or Incoherent Answers:** Adjust the self-correction parameters or explore more advanced techniques for evaluating answer quality.
 
+## Dockerization
+
+This project provides a Dockerfile to simplify the setup and deployment process, allowing you to run the offline multilingual question-answering system within a Docker container.
+
+### Dockerfile
+
+The `Dockerfile` includes instructions to:
+
+*   Use a slim Python 3.9 base image.
+*   Install system dependencies (PostgreSQL client, Redis, build tools).
+*   Set up the working directory.
+*   Install Python dependencies from `requirements.txt`.
+*   Download and install the spaCy language model and coreference resolution data.
+*   Copy the application code into the container.
+*   Start the Redis and PostgreSQL servers.
+*   Execute the `main.py` script to start the question-answering system.
+
+### Building the Docker Image
+
+1.  Ensure you have Docker installed on your system. You can download it from the official Docker website: [https://www.docker.com/](https://www.docker.com/)
+
+2.  Open a terminal or command prompt and navigate to the project's root directory.
+
+3.  Build the Docker image using the following command:
+
+    ```bash
+    docker build -t offline-qna-system .
+    ```
+
+    This will create a Docker image named `offline-qna-system`.
+
+### Running the Docker Container
+
+1.  Run the Docker container in interactive mode:
+
+    ```bash
+    docker run -it offline-qna-system
+    ```
+
+    This will start the container, and you should see the chat interface in the terminal.
+
+2.  **Set up the database:**
+
+    *   In a separate terminal window, access the PostgreSQL shell within the running container:
+
+        ```bash
+        docker exec -it <container_id> sudo -u postgres psql  # Replace <container_id> with the actual container ID
+        ```
+
+    *   Create a database and user (replace with your desired names):
+
+        ```sql
+        CREATE DATABASE my_qna_db;
+        CREATE USER my_qna_user WITH ENCRYPTED PASSWORD 'your_password';
+        GRANT ALL PRIVILEGES ON DATABASE my_qna_db TO my_qna_user;
+        \q  # Exit the shell
+        ```
+
+3.  **Interact with the system:**
+
+    *   Use the chat interface in the container's terminal to ask questions and receive answers.
+
+**Important Considerations**
+
+*   **Data Persistence:** By default, any data stored in the container (database, cache) will be lost when the container is stopped. To persist data, you can use Docker volumes to mount directories from your host machine into the container.
+*   **Resource Allocation:** Adjust the resource allocation (CPU, memory) for the container based on your hardware capabilities and the requirements of the models and services.
+*   **Security:**  In a production environment, it's crucial to configure PostgreSQL and Redis with appropriate security measures.
+*   **Port Mapping:** If you want to access Redis or PostgreSQL from outside the container, you'll need to map the container's ports to your host machine's ports using the `-p` option when running the container (e.g., `docker run -it -p 6379:6379 offline-qna-system`).
+
+**Example with Volume Mounting and Port Mapping**
+
+```bash
+docker run -it \
+       -v /path/to/your/data:/app/data \  # Mount data directory for persistence
+       -p 6379:6379 \  # Map Redis port
+       offline-qna-system
+
 ## Contributing
 
 Contributions to improve and enhance this system are welcome! Please follow these guidelines:
