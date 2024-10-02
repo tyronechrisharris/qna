@@ -505,6 +505,10 @@ docker run -it \
 
 ```
 
+This command mounts the /path/to/your/data directory from your host machine to the /app/data directory inside the container, ensuring that any data stored in the database or cache is persisted even after the container stops. It also maps the container's Redis port (6379) to the same port on the host machine, allowing you to access Redis from outside the container.
+
+By following these instructions, you can easily set up and run the offline multilingual question-answering system within a Docker container, simplifying the deployment process and ensuring a consistent environment across different machines.
+
 ## Contributing
 
 Contributions to improve and enhance this system are welcome! Please follow these guidelines:
