@@ -1,5 +1,6 @@
 import curses
 import uuid
+import logging
 
 from langchain.tools import BaseTool
 
@@ -28,36 +29,41 @@ class ChatInputTool(BaseTool):
         Main loop for the chat interface.
         Initializes curses, handles user input, and adds requests to the queue.
         """
-        # Initialize curses
-        stdscr = curses.initscr()
-        curses.cbreak()
-        curses.noecho()
-        stdscr.keypad(True)
+        try:
+            # Initialize curses
+            stdscr = curses.initscr()
+            curses.cbreak()
+            curses.noecho()
+            stdscr.keypad(True)
 
-        # Create chat window and input area
-        height, width = stdscr.getmaxyx()
-        chat_win = curses.newwin(height - 3, width, 0, 0)
-        input_win = curses.newwin(3, width, height - 3, 0)
-        chat_win.scrollok(True)
+            # Create chat window and input area
+            height, width = stdscr.getmaxyx()
+            chat_win = curses.newwin(height - 3, width, 0, 0)
+            input_win = curses.newwin(3, width, height - 3, 0)
+            chat_win.scrollok(True)
 
-        # Display welcome message
-        self._display_message(chat_win, "Welcome to the Offline Q&A Chatbot!")
+            # Display welcome message
+            self._display_message(chat_win, "Welcome to the Offline Q&A Chatbot!")
 
-        while True:
-            # Get user input
-            user_input = self._get_user_input(input_win)
+            while True:
+                # Get user input
+                user_input = self._get_user_input(input_win)
 
-            if user_input:
-                # Check if it's a new chat session
-                if self.current_chat_uid is None:
-                    self.current_chat_uid = str(uuid.uuid4())
-                    self._display_message(chat_win, f"New chat session started (UID: {self.current_chat_uid})")
+                if user_input:
+                    # Check if it's a new chat session
+                    if self.current_chat_uid is None:
+                        self.current_chat_uid = str(uuid.uuid4())
+                        self._display_message(chat_win, f"New chat session started (UID: {self.current_chat_uid})")
 
-                # Add the request to the queue
-                self.request_queue.put(("chat", user_input, self.current_chat_uid, None, None))
+                    # Add the request to the queue
+                    self.request_queue.put(("chat", user_input, self.current_chat_uid, None, None))
 
-                # Display user input in the chat window
-                self._display_message(chat_win, f"You: {user_input}")
+                    # Display user input in the chat window
+                    self._display_message(chat_win, f"You: {user_input}")
+
+        except Exception as e:
+            logging.error(f"Error in ChatInputTool: {e}")
+            # Consider adding a user-facing error message here if needed
 
     def _get_user_input(self, input_win):
         """

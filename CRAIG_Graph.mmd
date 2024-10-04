@@ -27,10 +27,12 @@ graph TD
 
     subgraph Output["Output"]
         N --> O[Display Answer in Chat]
-        O --> P[Update DB]
+        O --> P[Get User Feedback]
+        P --> Q1[Store Feedback in DB]
+        Q1 --> S[Update DB]
         style Output fill:#fcf,stroke:#333,stroke-width:2px,color:#000,fill-opacity:0.2;
     end
 
-    P --> A
+    S --> A
 
     classDef default text-align:center;

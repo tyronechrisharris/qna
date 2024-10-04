@@ -4,7 +4,7 @@ from typing import Optional, List
 from langchain.tools import BaseTool
 from langchain.chains import RetrievalQA
 from langchain.docstore.document import Document
-from langchain.llms import BaseLLM 
+from langchain.llms import BaseLLM  # Import the base LLM class
 
 class DocumentAnswerer(BaseTool):
     """

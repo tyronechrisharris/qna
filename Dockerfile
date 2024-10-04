@@ -21,7 +21,7 @@ COPY requirements.txt .
 # Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Download and install spaCy language model
+# Download and install spaCy language model and coreference data
 RUN python -m spacy download en_core_web_sm
 RUN python -m spacy_experimental.coref.download en
 

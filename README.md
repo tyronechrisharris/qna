@@ -26,6 +26,7 @@ This comprehensive system enables users to interact via a terminal-based chat in
 - [Contributing](#contributing)
 - [License](#license)
 - [TODO](#todo)
+- [Dockerization](#dockerization)
 
 ## Introduction
 
@@ -33,206 +34,104 @@ This system is designed to provide a seamless and informative question-answering
 
 ## Features
 
-* Offline Operation: Functions entirely without an internet connection, ensuring data privacy and availability.
-* Multilingual Support: Handles questions and provides answers in multiple languages (Spanish, French, German, Thai, Russian, Arabic, Portuguese, Mandarin).
-* Contextual Understanding: Maintains conversation history within chat sessions to provide more relevant and coherent responses to follow-up questions.
-* Self-Correction: Employs a retry mechanism to iteratively refine answers, minimizing hallucinations and improving accuracy.
-* Terminal-Based Chat Interface: Offers a user-friendly, real-time chat interface for interaction.
-* UID Tracking & Database: Assigns unique identifiers to each interaction, facilitating tracking, analysis, and debugging.
-* Caching: Enhances performance by storing and reusing previous results.
-* Document Referencing: Provides transparency by citing the sources used to generate answers.
-* Efficient Multilingual Tokenizer: Utilizes SentencePiece for efficient handling of multiple languages.
-* Offline LLM: Leverages the Vicuna-7B model for powerful language understanding and answer generation capabilities in an offline setting.
-* Queue-Based Processing: Handles multiple chat requests concurrently, ensuring fair and efficient processing.
-
-![image](/CRAIG_Graph.svg)
+- **Offline Operation:** Functions entirely without an internet connection, ensuring data privacy and availability.
+- **Multilingual Support:** Handles questions and provides answers in multiple languages (Spanish, French, German, Thai, Russian, Arabic, Portuguese, Mandarin).
+- **Contextual Understanding:** Maintains conversation history within chat sessions to provide more relevant and coherent responses to follow-up questions.
+- **Self-Correction:** Employs a retry mechanism to iteratively refine answers, minimizing hallucinations and improving accuracy.
+- **Terminal-Based Chat Interface:** Offers a user-friendly, real-time chat interface for interaction.
+- **UID Tracking & Database:** Assigns unique identifiers to each interaction, facilitating tracking, analysis, and debugging.
+- **Caching:** Enhances performance by storing and reusing previous results.
+- **Document Referencing:** Provides transparency by citing the sources used to generate answers.
+- **Efficient Multilingual Tokenizer:** Utilizes SentencePiece for efficient handling of multiple languages.
+- **Offline LLM:** Leverages the Vicuna-7B model for powerful language understanding and answer generation capabilities in an offline setting.
+- **Queue-Based Processing:** Handles multiple chat requests concurrently, ensuring fair and efficient processing.
+- **User Feedback Mechanism:**  Collects user feedback (thumbs up/thumbs down) to improve the system's performance over time.
 
 ## System Architecture
 
 The system's modular architecture comprises interconnected components, each fulfilling a specific role in the question-answering process.
 
-* **`Config`**: Centralizes configuration and setup, including loading models, database connection, cache initialization.
-* **`Tasks`**: Defines the Langgraph tasks and their dependencies, representing the system's workflow.
-* **Tools:** Encapsulate the functionality of different components, facilitating modularity and reusability.
-    * **`LanguageDetectionTool`:** Identifies the input language.
-    * **`Translator`:** Handles translation between supported languages and English.
-    * **`DocumentAnswerer`:** Retrieves relevant documents and generates answers using the offline LLM.
-    * **`SelfCorrectiveAgent`:** Evaluates answers and triggers retries if needed.
-    * **`ChatInputTool`:** Handles user input from the terminal-based chat interface.
+*   **`Config`**: Centralizes configuration and setup, including loading models, database connection, cache initialization.
+*   **`Tasks`**: Defines the Langgraph tasks and their dependencies, representing the system's workflow.
+*   **Tools:** Encapsulate the functionality of different components, facilitating modularity and reusability.
+    *   **`LanguageDetectionTool`:** Identifies the input language.
+    *   **`Translator`:** Handles translation between supported languages and English.
+    *   **`DocumentAnswerer`:** Retrieves relevant documents and generates answers using the offline LLM.
+    *   **`SelfCorrectiveAgent`:** Evaluates answers and triggers retries if needed.
+    *   **`ChatInputTool`:** Handles user input from the terminal-based chat interface.
 
 ## Components
 
 ### `Config` (`config.py`)
 
-* **Purpose:** Centralizes configuration and setup for the system
-* **Functionality:**
-    * Loads offline translation models (MarianMT) for supported language pairs using the SentencePiece tokenizer
-    * Loads the local embedded document collection using the specified embedding model (sentence-transformers/all-MiniLM-L6-v2)
-    * Initializes the database connection and creates the necessary table
-    * Sets up a Redis cache
-    * Loads the offline LLM (Vicuna-7B)
+*   **Purpose:** Centralizes configuration and setup for the system
+*   **Functionality:**
+    *   Loads offline translation models (MarianMT) for supported language pairs using the SentencePiece tokenizer
+    *   Loads the local embedded document collection using the specified embedding model (sentence-transformers/all-MiniLM-L6-v2)
+    *   Initializes the database connection and creates the necessary table
+    *   Sets up a Redis cache
+    *   Loads the offline LLM (Vicuna-7B)
 
 ### `Tasks` (`tasks.py`)
 
-* **Purpose:** Defines the Langgraph tasks and their dependencies, forming the system's workflow
-* **Tasks**
-    * `chat_input_task`: Gets user input from the chat interface and adds it to the request queue
-    * `detect_language_task`: Detects the language of the input question
-    * `translate_to_english_task`: Translates the question to English if needed
-    * `retrieve_documents_task`: Retrieves relevant documents from the local collection
-    * `generate_answer_task`: Generates an answer using the offline LLM and retrieved documents
-    * `self_correct_task`: Evaluates the answer and triggers retries if necessary
-    * `translate_to_user_language_task`: Translates the answer back to the original language if needed
-    * `display_answer_in_chat_task`: Displays the answer in the chat interface and updates the database
-* **Key Considerations:**
-    * The `tool_code` blocks within each task contain the actual logic for performing the task. 
-    * The `args` dictionaries define how data flows between tasks, specifying which outputs from one task are passed as inputs to another
+*   **Purpose:** Defines the Langgraph tasks and their dependencies, forming the system's workflow
+*   **Tasks**
+    *   `chat_input_task`: Gets user input from the chat interface and adds it to the request queue
+    *   `detect_language_task`: Detects the language of the input question
+    *   `translate_to_english_task`: Translates the question to English if needed
+    *   `retrieve_documents_task`: Retrieves relevant documents from the local collection
+    *   `generate_answer_task`: Generates an answer using the offline LLM and retrieved documents
+    *   `self_correct_task`: Evaluates the answer and triggers retries if necessary
+    *   `translate_to_user_language_task`: Translates the answer back to the original language if needed
+    *   `display_answer_in_chat_task`: Displays the answer in the chat interface and updates the database
+*   **Key Considerations:**
+    *   The `tool_code` blocks within each task contain the actual logic for performing the task. 
+    *   The `args` dictionaries define how data flows between tasks, specifying which outputs from one task are passed as inputs to another
 
 ### Tools
 
 #### Language Detection Tool (`language_detection_tool.py`)
 
-* **Purpose:** Identifies the language of the input text
-* **Functionality:**
-    * Uses the `langdetect` library to detect the language
-    * Handles potential detection failures with a fallback strategy (currently assumes English as the default)
+*   **Purpose:** Identifies the language of the input text
+*   **Functionality:**
+    *   Uses the `langdetect` library to detect the language
+    *   Handles potential detection failures with a fallback strategy (currently assumes English as the default)
 
 #### Translator (`translator.py`)
 
-* **Purpose:** Handles translation between supported languages and English
-* **Functionality:**
-    * Uses the SentencePiece tokenizer and pre-trained MarianMT models loaded in `config.py`
-    * Caches translations for efficiency
-    * Detects the source language if the target language is English
-    * Handles unsupported language pairs with an error message
+*   **Purpose:** Handles translation between supported languages and English
+*   **Functionality:**
+    *   Uses the SentencePiece tokenizer and pre-trained MarianMT models loaded in `config.py`
+    *   Caches translations for efficiency
+    *   Detects the source language if the target language is English
+    *   Handles unsupported language pairs with an error message
 
 #### Document Answerer (`document_answerer.py`)
 
-* **Purpose:** Retrieves relevant documents and generates answers
-* **Functionality:**
-    * Uses the local vectorstore to retrieve documents semantically similar to the query
-    * Incorporates context from previous interactions for follow-up questions
-    * Generates answers using the offline LLM
-    * Caches answers for efficiency
-    * Includes references to the documents used in the response
+*   **Purpose:** Retrieves relevant documents and generates answers
+*   **Functionality:**
+    *   Uses the local vectorstore to retrieve documents semantically similar to the query
+    *   Incorporates context from previous interactions for follow-up questions
+    *   Generates answers using the offline LLM
+    *   Caches answers for efficiency
+    *   Includes references to the documents used in the response
 
 #### Self-Corrective Agent (`self_corrective_agent.py`)
 
-* **Purpose:** Evaluates the quality of generated answers
-* **Functionality:**
-    * Checks for hallucinations, coherence, and sense
-    * Optionally, performs factual accuracy checks (requires additional implementation)
-    * Triggers retries with feedback to the Document Retriever if the answer is not acceptable (up to 3 retries)
-    * If max retries are reached, passes the answer along with identified problems
+*   **Purpose:** Evaluates the quality of generated answers
+*   **Functionality:**
+    *   Checks for hallucinations, coherence, and sense
+    *   Optionally, performs factual accuracy checks (requires additional implementation)
+    *   Triggers retries with feedback to the Document Retriever if the answer is not acceptable (up to 3 retries)
+    *   If max retries are reached, passes the answer along with identified problems
 
 #### Chat Input Tool (`chat_input_tool.py`)
 
-* **Purpose:** Handles user input from the terminal-based chat interface
-* **Functionality:**
-    * Uses the `curses` library to create an interactive chat window in the terminal
-    * Gets user input, generates UIDs for new chat sessions, and retrieves context for follow-up questions
-    * Adds chat requests to the queue for processing
-
-### M3 Mac Quick Setup
-
-1.  **Clone the repository:**
-
-    ```bash
-    git clone https://code.ornl.gov/6cq/offline-multilingual-question-answering-system
-    ```
-
-2.  **Navigate to the project directory:**
-
-    ```bash
-    cd offline-multilingual-question-answering-system
-    ```
-
-3.  **Create a document upload folder:**
-
-    *  Create a folder named `uploads` at the root level of the project.
-
-4.  **Add your documents:**
-
-    *  Place your documents (e.g., plain text files) in the `uploads` folder.
-
-5.  **Run the setup script:**
-
-    ```bash
-    chmod +x MacM3setup.sh
-    ```
-    ```bash
-    ./MacM3setup.sh  # This will execute the setup script
-    ```
-
-    This script will perform the following actions:
-
-    *   **Create and activate a virtual environment:**
-
-        *   It creates a virtual environment named `offlineqa-env` using `python3 -m venv`.
-        *   It activates the virtual environment using `source offlineqa-env/bin/activate`.
-
-    *   **Install dependencies:**
-
-        *   It installs the required Python packages listed in `requirements.txt` using `pip install -r requirements.txt`.
-
-    *   **Download and organize models:**
-
-        *   It creates the necessary directories for storing the models (`models/translation`, `models/llm`, `models/embedding`).
-        *   It downloads the translation models (MarianMT) for the supported language pairs using the `transformers` library.
-        *   It downloads the Vicuna-7B LLM and its tokenizer.
-        *   It downloads the SentencePiece tokenizer.
-
-    *   **Prepare your document collection:**
-
-        *   It loads and preprocesses documents from the `uploads` folder using `DirectoryLoader` and `RecursiveCharacterTextSplitter`.
-        *   It generates embeddings for the documents using the `all-MiniLM-L6-v2` embedding model (recommended for Vicuna) and stores them in a FAISS index.
-        *   It saves the FAISS index to disk (`data/faiss_index`).
-
-    *   **Download the spaCy language model and enable the coherence pipe:**
-
-        *   It downloads the `en_core_web_sm` language model for spaCy using `python -m spacy download en_core_web_sm`.
-        *   It downloads the coreference resolution data for spaCy using `python -m spacy_experimental.coref.download en`.
-
-    *   **Set up and start Redis and PostgreSQL:**
-
-        *   It installs Redis and PostgreSQL using Homebrew.
-        *   It starts the Redis and PostgreSQL servers.
-        *   It creates a database and user in PostgreSQL.
-
-6.  **Run the main program:**
-    ```bash
-    chmod +x MacM3restart.sh
-    ```
-    ```bash
-    python main.py
-    ```
-
-    The system will start running, presenting the terminal-based chat interface for user interaction.
-
-
-### Running the System
-
-1.  **Initial Setup:**
-    *   If you haven't already, follow the installation instructions to set up the system and its dependencies.
-
-2.  **Starting the System:**
-    *   Execute the `MacM3restart.sh` script to start the Redis and PostgreSQL servers and run the main program:
-
-        ```bash
-        ./MacM3restart.sh
-        ```
-
-    *   The system will start running, presenting the terminal-based chat interface for user interaction.
-
-3.  **Restarting the System:**
-    *   If you need to restart the system (e.g., after making changes to the code or configuration), you can use the same `MacM3restart.sh` script:
-
-        ```bash
-        ./MacM3restart.sh
-        ```
-
-    *   This script will restart the Redis and PostgreSQL servers and then re-run the main program.
-
+*   **Purpose:** Handles user input from the terminal-based chat interface
+*   **Functionality:**
+    *   Uses the `curses` library to create an interactive chat window in the terminal
+    *   Gets user input, generates UIDs for new chat sessions, and retrieves context for follow-up questions
+    *   Adds chat requests to the queue for processing
 
 ## Getting Started
 
@@ -250,7 +149,7 @@ The system's modular architecture comprises interconnected components, each fulf
     *   English to German: `Helsinki-NLP/opus-mt-en-de`
     *   Thai to English: `Helsinki-NLP/opus-mt-th-en`
     *   English to Thai: `Helsinki-NLP/opus-mt-en-th`
-    *   Russian to English: `Helsinki-NLP/opus-mt-ru-en`
+    *   Russian toEnglish: `Helsinki-NLP/opus-mt-ru-en`
     *   English to Russian: `Helsinki-NLP/opus-mt-en-ru`
     *   Arabic to English: `Helsinki-NLP/opus-mt-ar-en`
     *   English to Arabic: `Helsinki-NLP/opus-mt-en-ar`
@@ -301,13 +200,19 @@ The system's modular architecture comprises interconnected components, each fulf
 *   **Optional Libraries:** 
     *   If you choose a different caching solution than the basic in-memory cache, install the necessary library for that (e.g., `redis` for Redis).
 
+*   **curses (Windows only):**
+    *   If you are using Windows, you'll need to install the `windows-curses` package using `pip`:
+
+        ```bash
+        pip install windows-curses
+        ```
 
 ### Installation
 
 1.  **Clone the repository:**
 
     ```bash
-    git clone https://code.ornl.gov/6cq/offline-multilingual-question-answering-system
+    git clone [https://code.ornl.gov/6cq/offline-multilingual-question-answering-system](https://code.ornl.gov/6cq/offline-multilingual-question-answering-system)
     ```
 
 2.  **Navigate to the project directory:**
@@ -316,202 +221,83 @@ The system's modular architecture comprises interconnected components, each fulf
     cd offline-multilingual-question-answering-system
     ```
 
-3.  **Create a virtual environment:**
+3.  **Create a document upload folder:**
+
+    *  Create a folder named `uploads` at the root level of the project.
+
+4.  **Add your documents:**
+
+    *  Place your documents (e.g., plain text files) in the `uploads` folder.
+
+5.  **Make the setup script executable:**
 
     ```bash
-    python -m venv offlineqa-env  # Create an environment named 'offlineqa-env'
+    chmod +x MacM3setup.sh
     ```
 
-4.  **Activate the virtual environment:**
-
-    *   **On Windows:**
-
-        ```bash
-        offlineqa-env\Scripts\activate
-        ```
-
-    *   **On macOS/Linux:**
-
-        ```bash
-        source offlineqa-env/bin/activate
-        ```
-
-5.  **Install dependencies using the provided `requirements.txt` file:**
+6.  **Run the setup script:**
 
     ```bash
-    pip install -r requirements.txt
+    ./MacM3setup.sh  # This will execute the setup script
     ```
 
-    This will install all the necessary Python packages listed in `requirements.txt` within the virtual environment.
+    This script will perform the following actions:
 
-6.  **Download and organize models:**
+    *   **Create and activate a virtual environment:**
 
-    *   **Create the `models` directory and its subdirectories:**
+        *   It creates a virtual environment named `offlineqa-env` using `python3 -m venv`.
+        *   It activates the virtual environment using `source offlineqa-env/bin/activate`.
 
-        ```bash
-        mkdir -p models/translation models/llm models/embedding
-        ```
+    *   **Install dependencies:**
 
-    *   **Download translation models:**
+        *   It installs the required Python packages listed in `requirements.txt` using `pip install -r requirements.txt`.
 
-        ```python
-        from transformers import MarianMTModel, MarianTokenizer
+    *   **Download and organize models:**
 
-        # Define language codes and model names 
-        language_pairs = {
-            'es': ('Helsinki-NLP/opus-mt-es-en', 'Helsinki-NLP/opus-mt-en-es'),
-            'fr': ('Helsinki-NLP/opus-mt-fr-en', 'Helsinki-NLP/opus-mt-en-fr'),
-            'de': ('Helsinki-NLP/opus-mt-de-en', 'Helsinki-NLP/opus-mt-en-de'),
-            'th': ('Helsinki-NLP/opus-mt-th-en', 'Helsinki-NLP/opus-mt-en-th'),
-            'ru': ('Helsinki-NLP/opus-mt-ru-en', 'Helsinki-NLP/opus-mt-en-ru'),
-            'ar': ('Helsinki-NLP/opus-mt-ar-en', 'Helsinki-NLP/opus-mt-en-ar'),
-            'pt': ('Helsinki-NLP/opus-mt-pt-en', 'Helsinki-NLP/opus-mt-en-pt'),
-            'zh': ('Helsinki-NLP/opus-mt-zh-en', 'Helsinki-NLP/opus-mt-en-zh'),
-        }
+        *   It creates the necessary directories for storing the models (`models/translation`, `models/llm`, `models/embedding`).
+        *   It downloads the translation models (MarianMT) for the supported language pairs using the `transformers` library.
+        *   It downloads the Vicuna-7B LLM and its tokenizer.
+        *   It downloads the SentencePiece tokenizer.
 
-        # Download models
-        for _, (to_en_model_name, from_en_model_name) in language_pairs.items():
-            MarianTokenizer.from_pretrained(to_en_model_name, cache_dir="./models/translation")
-            MarianMTModel.from_pretrained(to_en_model_name, cache_dir="./models/translation")
-            MarianTokenizer.from_pretrained(from_en_model_name, cache_dir="./models/translation")
-            MarianMTModel.from_pretrained(from_en_model_name, cache_dir="./models/translation")
-        ```
+    *   **Prepare your document collection:**
 
-    *   **Download the LLM (Vicuna-7B):**
+        *   It loads and preprocesses documents from the `uploads` folder using `DirectoryLoader` and `RecursiveCharacterTextSplitter`.
+        *   It generates embeddings for the documents using the `all-MiniLM-L6-v2` embedding model (recommended for Vicuna) and stores them in a FAISS index.
+        *   It saves the FAISS index to disk (`data/faiss_index`).
 
-        *   **Ensure you have enough disk space:** The Vicuna-7B model is quite large (around 13GB). Make sure you have sufficient disk space available before downloading.
-        *   **Use the `transformers` library to download:** 
+    *   **Download the spaCy language model and enable the coherence pipe:**
 
-            ```python
-            from transformers import AutoTokenizer, AutoModelForCausalLM
+        *   It downloads the `en_core_web_sm` language model for spaCy using `python -m spacy download en_core_web_sm`.
+        *   It downloads the coreference resolution data for spaCy using `python -m spacy_experimental.coref.download en`.
 
-            tokenizer = AutoTokenizer.from_pretrained("TheBloke/Vicuna-7B-v1.5-GGUF", cache_dir="./models/llm")
-            model = AutoModelForCausalLM.from_pretrained("TheBloke/Vicuna-7B-v1.5-GGUF", cache_dir="./models/llm")
-            ```
+    *   **Set up and start Redis and PostgreSQL:**
 
-            This code will download both the tokenizer and the model weights to the `./models/llm` directory.
+        *   It installs Redis and PostgreSQL using Homebrew.
+        *   It starts the Redis and PostgreSQL servers.
+        *   It creates a database and user in PostgreSQL.
 
-        *   **Consider using a quantized version:** If you're running the system on a CPU or have limited memory, you might want to explore using a quantized version of Vicuna-7B, which can significantly reduce its memory footprint and improve inference speed. Refer to the Vicuna-7B model documentation for instructions on how to obtain and use a quantized version.
-
-    *   **Download the SentencePiece tokenizer:**
-
-        ```python
-        from transformers import AutoTokenizer
-
-        tokenizer = AutoTokenizer.from_pretrained("xlm-roberta-base", cache_dir="./models/embedding")
-        ```
-
-        This code will download the SentencePiece tokenizer to the `./models/embedding` directory.
-
-7.  **Prepare your document collection:**
-
-    1.  **Create a document upload folder:** 
-        * Create a folder named `uploads` at the root level of the project. This is where users will upload their documents.
-    2.  **Generate embeddings using Sentence Transformers:**
-
-        ```python
-        from langchain.document_loaders import DirectoryLoader
-        from langchain.text_splitter import RecursiveCharacterTextSplitter
-        from langchain.vectorstores import FAISS
-        from langchain.embeddings import HuggingFaceEmbeddings
-
-        # 1. Load and preprocess documents from the 'uploads' folder
-        loader = DirectoryLoader('./uploads', glob="**/*.txt")  # Load all .txt files from the uploads folder
-        documents = loader.load()
-
-        text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=0)
-        texts = text_splitter.split_documents(documents)
-
-        # 2. Generate embeddings (all-MiniLM-L6-v2 is recommended for Vicuna)
-        embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
-        db = FAISS.from_documents(texts, embeddings)
-
-        # 3. Save the vectorstore (FAISS index) to disk
-        db.save_local("data/faiss_index")
-        ```
-
-    *   This code snippet demonstrates how to load documents from the `uploads` folder, split them into chunks, generate embeddings using the `all-MiniLM-L6-v2` model (recommended for Vicuna), and store them in a FAISS index.
-
-8. **Download the spaCy language model and enable the coherence pipe:**
+7.  **Make the restart script executable:**
 
     ```bash
-    python -m spacy download en_core_web_sm
-    python -m spacy_experimental.coref.download en  # Download the coreference resolution data
+    chmod +x MacM3restart.sh
     ```
 
-9. **Set up Redis (if using Redis for caching):**
-
-    *   **On Windows:** Download and install Redis from the official website: [https://redis.io/download/](https://redis.io/download/). Follow the instructions provided on the website for Windows installation.
-    *   **On macOS:**
-        ```bash
-        brew install redis
-        ```
-    *   **On Ubuntu:**
-        ```bash
-        sudo apt update
-        sudo apt install redis-server
-        ```
-    *   **Start the Redis server:** Follow the platform-specific instructions to start the Redis server.
-
-10. **Set up PostgreSQL (if using PostgreSQL for the database):**
-
-    *   **On Windows:** Download and install PostgreSQL from the official website: [https://www.postgresql.org/download/](https://www.postgresql.org/download/). Follow the instructions provided on the website for Windows installation.
-    *   **On macOS:**
-        ```bash
-        brew install postgresql
-        brew services start postgresql
-        ```
-    *   **On Ubuntu:**
-        ```bash
-        sudo apt update
-        sudo apt install postgresql postgresql-contrib
-        ```
-    *   **Create a database and user:**
-        ```bash
-        sudo -u postgres psql  # Access PostgreSQL shell
-        CREATE DATABASE my_qna_db;
-        CREATE USER my_qna_user WITH ENCRYPTED PASSWORD 'your_password';
-        GRANT ALL PRIVILEGES ON DATABASE my_qna_db TO my_qna_user;
-        \q  # Exit the shell
-        ```
-    *   Update the database connection details in the `_initialize_database` method in `config.py` with your PostgreSQL credentials.
-
-11. **Start Redis and PostgreSQL servers (if applicable):**
-
-    *   **On Windows:** Use the services management console or the command line to start the Redis and PostgreSQL services.
-    *   **On macOS:**
-        ```bash
-        brew services start redis
-        brew services start postgresql
-        ```
-    *   **On Ubuntu:**
-        ```bash
-        sudo systemctl start redis-server
-        sudo systemctl start postgresql
-        ```
-
-### Configuration
-
-1.  **`config.py`**
-    *   Update the `language_pairs` dictionary in the `Config` class with the actual paths to your downloaded translation models.
-    *   Ensure the path to your FAISS index in `_load_document_collection` is correct.
-    *   Configure the database connection details in `_initialize_database` if you're using a different database system.
-    *   Ensure you have the SentencePiece tokenizer downloaded and specify its path in `_load_translation_models`.
-
-2.  **Tool Implementations**
-    *   In `document_answerer.py`, ensure the  `_run`  method uses your actual offline LLM interface.
-    *   Customize the  `SelfCorrectiveAgent`  in  `self_corrective_agent.py`  with your desired evaluation logic and thresholds.
-    *   The chat interface logic in  `chat_input_tool.py`  and the  `display_answer_in_chat_task`  in  `tasks.py`  are already implemented using the  `curses`  library.
-
-### Running the System
-
-1.  **Execute `main.py`**
+8.  **Run the main program:**
 
     ```bash
     python main.py
     ```
 
     The system will start running, presenting the terminal-based chat interface for user interaction.
+
+9.  **Restarting the System:**
+    *   If you need to restart the system (e.g., after making changes to the code or configuration), you can use the `MacM3restart.sh` script:
+
+        ```bash
+        ./MacM3restart.sh
+        ```
+
+        This script will restart the Redis and PostgreSQL servers and then re-run the main program.
 
 ## Customization
 
@@ -526,6 +312,32 @@ The system's modular architecture comprises interconnected components, each fulf
 *   **Language Detection Failures:** If language detection fails frequently, consider fine-tuning the language detection model or using a different one.
 *   **Translation Errors:** If translations are inaccurate, try using different pre-trained models or fine-tune them on your specific domain.
 *   **Hallucinations or Incoherent Answers:** Adjust the self-correction parameters or explore more advanced techniques for evaluating answer quality.
+
+## Contributing
+
+Contributions to improve and enhance this system are welcome! Please follow these guidelines:
+
+*   Fork the repository
+*   Create a new branch for your feature or bug fix
+*   Make your changes and commit them with clear and descriptive messages
+*   Push your changes to your forked repository
+*   Submit a pull request to the main repository
+
+## License
+
+This project is licensed under the [MIT License](LICENSE)
+
+## TODO
+
+*   **Fine-tune Models:** 
+    *   Consider fine-tuning the SentencePiece tokenizer and the translation models on your specific language data to potentially improve performance.
+    *   If you have domain-specific data, explore fine-tuning the Vicuna-7B LLM to enhance its accuracy and relevance for your particular use case.
+*   **Enhance Self-Correction:**
+    *   Investigate and implement more advanced techniques for hallucination detection, coherence assessment, and fact-checking to further improve the quality of generated answers.
+*   **Expand Document Collection:**
+    *   Continuously update and expand your embedded document collection to cover a wider range of topics and domains, making the system more knowledgeable and versatile.
+*   **User Feedback Mechanism:**
+    *Develop a more comprehensive system for analyzing and utilizing the collected user feedback to fine-tune models and improve the system's performance.
 
 ## Dockerization
 
@@ -603,37 +415,7 @@ docker run -it \
        -v /path/to/your/data:/app/data \  # Mount data directory for persistence
        -p 6379:6379 \  # Map Redis port
        offline-qna-system
-
-```
+```       
 
 This command mounts the /path/to/your/data directory from your host machine to the /app/data directory inside the container, ensuring that any data stored in the database or cache is persisted even after the container stops. It also maps the container's Redis port (6379) to the same port on the host machine, allowing you to access Redis from outside the container.
 
-By following these instructions, you can easily set up and run the offline multilingual question-answering system within a Docker container, simplifying the deployment process and ensuring a consistent environment across different machines.
-
-## Contributing
-
-Contributions to improve and enhance this system are welcome! Please follow these guidelines:
-
-*   Fork the repository
-*   Create a new branch for your feature or bug fix
-*   Make your changes and commit them with clear and descriptive messages
-*   Push your changes to your forked repository
-*   Submit a pull request to the main repository
-
-## License
-
-This project is licensed under the [MIT License](LICENSE)
-
-## TODO
-
-*   **Implement Outlook 365 Integration (Optional):** 
-    *   If you want to add email functionality in the future, replace the placeholders in `email_input_tool.py` and `email_output_tool.py` with your actual Outlook 365 integration code using the Microsoft Graph API or a suitable library.
-*   **Fine-tune Models:** 
-    *   Consider fine-tuning the SentencePiece tokenizer and the translation models on your specific language data to potentially improve performance.
-    *   If you have domain-specific data, explore fine-tuning the Vicuna-7B LLM to enhance its accuracy and relevance for your particular use case.
-*   **Enhance Self-Correction:**
-    *   Investigate and implement more advanced techniques for hallucination detection, coherence assessment, and fact-checking to further improve the quality of generated answers.
-*   **Expand Document Collection:**
-    *   Continuously update and expand your embedded document collection to cover a wider range of topics and domains, making the system more knowledgeable and versatile.
-*   **User Feedback Mechanism:**
-    *   Incorporate a mechanism to collect user feedback on the quality and relevance of answers. This feedback can be used to further fine-tune models and improve the system's overall performance.

@@ -2,27 +2,23 @@
 langgraph==0.0.13 
 sentence-transformers==2.2.2
 spacy==3.6.1
-langdetect==1.0.9
+fasttext==0.9.2      # Using fasttext for language detection
 transformers==4.31.0
 
 # Database (SQLite3 is usually included by default)
 # sqlite3
 psycopg2-binary  # For PostgreSQL
 
-# Caching (Choose one based on your preference)
-# - In-memory cache (no additional library needed)
-# - Redis: 
+# Caching 
 redis
 
 # Offline LLM (Vicuna-7B)
-torch==2.1.0
-accelerate==0.23.0
-bitsandbytes==0.41.0
+pytorch  # This will install the necessary PyTorch components
 
 # Other potential dependencies 
 numpy==1.26.0
 pandas==2.1.1
-curses              # For terminal-based chat interface
+# curses              # For terminal-based chat interface (usually included by default on Unix-like systems)
 
 # For spaCy
 spacy-experimental==0.6.0  

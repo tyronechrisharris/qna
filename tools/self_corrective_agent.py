@@ -68,15 +68,19 @@ class SelfCorrectiveAgent(BaseTool):
             True if the answer is valid, False otherwise
         """
 
-        # 1. Hallucination Check
-        if not self.is_answer_grounded(query, answer, documents):
-            return False 
+        try:
+            # 1. Hallucination Check
+            if not self.is_answer_grounded(query, answer, documents):
+                return False 
 
-        # 2. Coherence and Sense Check
-        if not self.is_answer_coherent(answer):
-            return False
+            # 2. Coherence and Sense Check
+            if not self.is_answer_coherent(answer):
+                return False
 
-        return True
+            return True
+        except Exception as e:
+            logging.error(f"Error during answer validation: {e}")
+            return False  # Consider the answer invalid if an error occurs
 
     def is_answer_grounded(self, query: str, answer: str, documents: list) -> bool:
         """

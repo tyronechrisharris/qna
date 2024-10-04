@@ -29,16 +29,42 @@ from_en_repos=(
     "Helsinki-NLP/opus-mt-en-zh"
 )
 
-# Clone the model repositories
+# Clone the model repositories, checking if they already exist
 for i in "${!language_codes[@]}"; do
     to_en_repo=${to_en_repos[$i]}
     from_en_repo=${from_en_repos[$i]}
-    git clone https://huggingface.co/$to_en_repo ./models/translation/$to_en_repo || { echo "Error cloning repository: $to_en_repo"; exit 1; }
-    git clone https://huggingface.co/$from_en_repo ./models/translation/$from_en_repo || { echo "Error cloning repository: $from_en_repo"; exit 1; }
+
+    if [ ! -d "models/translation/$to_en_repo-quantized" ]; then
+        echo "Cloning '$to_en_repo-quantized'..."
+        git clone https://huggingface.co/$to_en_repo ./models/translation/$to_en_repo-quantized || { echo "Error cloning repository: $to_en_repo-quantized"; exit 1; }
+    else
+        echo "Updating '$to_en_repo-quantized'..."
+        (cd "models/translation/$to_en_repo-quantized" && git pull) || { echo "Error updating repository: $to_en_repo-quantized"; exit 1; }
+    fi
+
+    if [ ! -d "models/translation/$from_en_repo-quantized" ]; then
+        echo "Cloning '$from_en_repo-quantized'..."
+        git clone https://huggingface.co/$from_en_repo ./models/translation/$from_en_repo-quantized || { echo "Error cloning repository: $from_en_repo-quantized"; exit 1; }
+    else
+        echo "Updating '$from_en_repo-quantized'..."
+        (cd "models/translation/$from_en_repo-quantized" && git pull) || { echo "Error updating repository: $from_en_repo-quantized"; exit 1; }
+    fi
 done
 
-# Download the LLM (Vicuna-7B)
-git clone https://huggingface.co/TheBloke/Vicuna-7B-v1.5-GGUF ./models/llm/vicuna-7b || { echo "Error downloading Vicuna-7B. Exiting."; exit 1; }
+# Download the LLM (Vicuna-7B), checking if it already exists
+if [ ! -d "models/llm/vicuna-7b-quantized" ]; then
+    echo "Cloning 'Vicuna-7B-quantized'..."
+    git clone https://huggingface.co/TheBloke/Vicuna-7B-v1.5-GGUF ./models/llm/vicuna-7b-quantized || { echo "Error downloading Vicuna-7B. Exiting."; exit 1; }
+else
+    echo "Updating 'Vicuna-7B-quantized'..."
+    (cd "models/llm/vicuna-7b-quantized" && git pull) || { echo "Error updating Vicuna-7B."; exit 1; }
+fi
 
-# Download the SentencePiece tokenizer
-git clone https://huggingface.co/xlm-roberta-base ./models/embedding/xlm-roberta-base || { echo "Error downloading SentencePiece tokenizer. Exiting."; exit 1; }
+# Download the SentencePiece tokenizer, checking if it already exists
+if [ ! -d "models/embedding/xlm-roberta-base" ]; then
+    echo "Cloning 'xlm-roberta-base'..."
+    git clone https://huggingface.co/xlm-roberta-base ./models/embedding/xlm-roberta-base || { echo "Error downloading SentencePiece tokenizer. Exiting."; exit 1; }
+else
+    echo "Updating 'xlm-roberta-base'..."
+    (cd "models/embedding/xlm-roberta-base" && git pull) || { echo "Error updating xlm-roberta-base."; exit 1; }
+fi

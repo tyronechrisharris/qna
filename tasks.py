@@ -1,5 +1,6 @@
 import uuid
 import curses
+import logging
 
 from langgraph import Task, tool_code
 from langdetect import detect
@@ -20,7 +21,7 @@ class Tasks:
             tool_code=tool_code(
                 """
                 # 1. Get user input from the terminal (using curses)
-                user_input = get_user_input_from_terminal()
+                user_input, chat_win = get_user_input_from_terminal()
 
                 if user_input:
                     # 2. Check if this is a new chat session or a follow-up
@@ -47,7 +48,11 @@ class Tasks:
             name="detect_language",
             tool_code=tool_code(
                 """
-                detected_language = detect(question)
+                try:
+                    detected_language = detect(question)
+                except Exception as e:
+                    logging.error(f"Error during language detection: {e}")
+                    detected_language = "en"  # Default to English if detection fails
                 return detected_language
                 """
             ),
@@ -62,13 +67,13 @@ class Tasks:
                 # 1. Check cache for existing translation
                 cached_translation = cache.get(question)
                 if cached_translation:
-                    return cached_translation
+                    return cached_translation.decode('utf-8')  # Decode from bytes to string if found in cache
 
                 # 2. Perform translation if not cached
                 translation = translator.run(question)  # Use the translator tool
 
-                # 3. Store translation in cache
-                cache.set(question, translation)
+                # 3. Store translation in cache (store as bytes)
+                cache.set(question, translation.encode('utf-8'))
 
                 return translation
                 """
@@ -135,13 +140,13 @@ class Tasks:
                 # 1. Check cache for existing translation
                 cached_translation = cache.get(answer)
                 if cached_translation:
-                    return cached_translation
+                    return cached_translation.decode('utf-8')  # Decode from bytes to string if found in cache
 
                 # 2. Perform translation if not cached
                 translation = translator.run(answer, target_language=input_language) 
 
-                # 3. Store translation in cache
-                cache.set(answer, translation)
+                # 3. Store translation in cache (store as bytes)
+                cache.set(answer, translation.encode('utf-8'))
 
                 return translation
                 """
@@ -157,6 +162,12 @@ class Tasks:
                 # Display the answer in the chat interface (using curses)
                 display_answer_in_terminal(answer)
 
+                # Get feedback from the user
+                feedback = get_user_feedback(input_win)
+                if feedback:
+                    # Store the feedback in the database
+                    store_feedback_in_db(uid, feedback, cursor, conn)
+
                 # Update DB for chat interactions
                 status = "answered" if problems is None else "answered_with_problems"
                 update_interaction_in_db(uid, answer, status, cursor, conn)
@@ -166,6 +177,7 @@ class Tasks:
         )
 
 # Helper functions for chat interface (using curses)
+
 def get_user_input_from_terminal():
     # Initialize curses
     stdscr = curses.initscr()
@@ -189,7 +201,7 @@ def get_user_input_from_terminal():
         # Display user input in the chat window
         display_message(chat_win, f"You: {user_input}")
 
-    return user_input.strip(), chat_win
+    return user_input.strip(), chat_win, input_win  # Return input_win as well
 
 def get_input(input_win):
     input_win.clear()
@@ -233,35 +245,46 @@ def display_message(chat_win, message):
     if chat_win.getyx()[0] >= max_y - 1:
         chat_win.scroll(1)
 
+def get_user_feedback(input_win):
+    input_win.clear()
+    input_win.addstr(1, 0, "Feedback (thumbs up/thumbs down): ")
+    input_win.refresh()
+
+    feedback = ""
+    while True:
+        key = input_win.getch()
+        if key == curses.KEY_ENTER or key in [10, 13]:  # Enter key
+            break
+        elif key == curses.KEY_BACKSPACE or key == 127:  # Backspace
+            if feedback:
+                feedback = feedback[:-1]
+                y, x = input_win.getyx()
+                input_win.delch(y, x - 1)
+                input_win.refresh()
+        elif key == curses.KEY_UP:  # Up arrow for thumbs up
+            feedback = "thumbs up"
+            input_win.addstr(1, 0, "Feedback (thumbs up/thumbs down): thumbs up")
+            input_win.refresh()
+        elif key == curses.KEY_DOWN:  # Down arrow for thumbs down
+            feedback = "thumbs down"
+            input_win.addstr(1, 0, "Feedback (thumbs up/thumbs down): thumbs down")
+            input_win.refresh()
+
+    return feedback.strip().lower()
+
 def store_interaction_in_db(uid, question=None, answer=None, status="received", other_metadata=None, cursor=None, conn=None):
     """
     Stores the interaction details in the database.
-
-    Args:
-        uid: The unique identifier for the interaction.
-        question: The question submitted by the user (optional).
-        answer: The answer generated by the system (optional).
-        status: The status of the interaction (default is "received").
-        other_metadata: Any additional metadata you want to store (optional).
-        cursor: The database cursor object.
-        conn: The database connection object.
     """
     cursor.execute('''
-        INSERT INTO chat_interactions (uid, timestamp, question, answer, status, other_metadata)
-        VALUES (?, datetime('now'), ?, ?, ?, ?)
-    ''', (uid, question, answer, status, other_metadata))
+        INSERT INTO chat_interactions (uid, timestamp, question, answer, status, feedback, other_metadata)
+        VALUES (?, datetime('now'), ?, ?, ?, ?, ?)
+    ''', (uid, question, answer, status, None, other_metadata))  # Set feedback to None initially
     conn.commit()
 
 def update_interaction_in_db(uid, answer, status, cursor, conn):
     """
     Updates an existing interaction in the database.
-
-    Args:
-        uid: The unique identifier for the interaction.
-        answer: The updated answer to be stored.
-        status: The updated status of the interaction.
-        cursor: The database cursor object.
-        conn: The database connection object.
     """
     cursor.execute('''
         UPDATE chat_interactions
@@ -270,18 +293,26 @@ def update_interaction_in_db(uid, answer, status, cursor, conn):
     ''', (answer, status, uid))
     conn.commit()
 
+def store_feedback_in_db(uid, feedback, cursor, conn):
+    """
+    Stores the feedback for the given interaction in the database.
+    """
+    try:
+        cursor.execute(
+            """
+            UPDATE chat_interactions
+            SET feedback = ?
+            WHERE uid = ?
+        """,
+            (feedback, uid),
+        )
+        conn.commit()
+    except Exception as e:
+        logging.error(f"Error storing feedback in database: {e}")
+
 def generate_answer_from_llm(query: str, docs: list, context: Optional[List[dict]], llm) -> str:
     """
     Generates an answer to the given query using the provided documents and context.
-
-    Args:
-        query: The question to be answered.
-        docs: A list of relevant documents retrieved from the vectorstore.
-        context: Optional context from previous interactions (for follow-up questions).
-        llm: The offline LLM instance for generating answers.
-
-    Returns:
-        The generated answer to the query.
     """
 
     # Use RetrievalQA chain to generate answer
@@ -298,14 +329,6 @@ def generate_answer_from_llm(query: str, docs: list, context: Optional[List[dict
 def is_answer_valid(query: str, answer: str, documents: list) -> bool:
     """
     Checks if the generated answer is valid based on various criteria.
-
-    Args:
-        query: The original question asked by the user.
-        answer: The generated answer to be evaluated.
-        documents: The list of documents used to generate the answer.
-
-    Returns:
-        True if the answer is valid, False otherwise.
     """
 
     # 1. Check if the answer is relevant to the query
@@ -329,65 +352,48 @@ def is_answer_valid(query: str, answer: str, documents: list) -> bool:
 def generate_feedback(query: str, answer: str, documents: list) -> str:
     """
     Generates feedback to guide the Document Retriever in case the answer is not valid.
-
-    Args:
-        query: The original question asked by the user.
-        answer: The generated answer to be evaluated.
-        documents: The list of documents used to generate the answer.
-
-    Returns:
-        A string containing feedback for the Document Retriever.
     """
 
     feedback = "The answer needs improvement. Please consider the following:\n"
 
     # 1. Relevance feedback
-    similarity_model = SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2')
-    query_embedding = similarity_model.encode(query)
-    answer_embedding = similarity_model.encode(answer)
+    query_embedding = self.similarity_model.encode(query)
+    answer_embedding = self.similarity_model.encode(answer)
     if util.cos_sim(query_embedding, answer_embedding)[0][0] < 0.6:
         feedback += "- The answer doesn't seem to be relevant to the question.\n"
 
     # 2. Grounding feedback
-    doc_embeddings = similarity_model.encode([doc.page_content for doc in documents])
+    doc_embeddings = self.similarity_model.encode([doc.page_content for doc in documents])
     if util.cos_sim(answer_embedding, doc_embeddings).max() < 0.3:
         feedback += "- The answer might contain information not found in the provided documents.\n"
 
     # 3. Coherence and sense feedback
-    nlp = spacy.load("en_core_web_sm")
-    doc = nlp(answer)
+    doc = self.nlp(answer)
     if doc._.coherence_score < 0.5 or doc._.sentence_cohesion_score < 0.5:
         feedback += "- The answer is not clear or logically consistent.\n"
 
     return feedback
 
-def describe_problems(answer: str) -> str:
+def describe_problems(query: str, answer: str, documents: list) -> str:
     """
     Provides a description of the problems identified in the answer.
-
-    Args:
-        answer: The generated answer to be evaluated.
-
-    Returns:
-        A string describing the problems found in the answer.
     """
+
     problems = []
 
     # 1. Relevance problem
-    similarity_model = SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2')
-    query_embedding = similarity_model.encode(query)
-    answer_embedding = similarity_model.encode(answer)
+    query_embedding = self.similarity_model.encode(query)
+    answer_embedding = self.similarity_model.encode(answer)
     if util.cos_sim(query_embedding, answer_embedding)[0][0] < 0.6:
         problems.append("The answer doesn't seem to be relevant to the question.")
 
     # 2. Grounding problem
-    doc_embeddings = similarity_model.encode([doc.page_content for doc in documents])
+    doc_embeddings = self.similarity_model.encode([doc.page_content for doc in documents])
     if util.cos_sim(answer_embedding, doc_embeddings).max() < 0.3:
         problems.append("The answer might contain information not found in the provided documents.")
 
     # 3. Coherence and sense problem
-    nlp = spacy.load("en_core_web_sm")
-    doc = nlp(answer)
+    doc = self.nlp(answer)
     if doc._.coherence_score < 0.5 or doc._.sentence_cohesion_score < 0.5:
         problems.append("The answer is not clear or logically consistent.")
 
