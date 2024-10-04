@@ -34,21 +34,20 @@ This system is designed to provide a seamless and informative question-answering
 
 ## Features
 
-- **Offline Operation:** Functions entirely without an internet connection, ensuring data privacy and availability.
-- **Multilingual Support:** Handles questions and provides answers in multiple languages (Spanish, French, German, Thai, Russian, Arabic, Portuguese, Mandarin).
-- **Contextual Understanding:** Maintains conversation history within chat sessions to provide more relevant and coherent responses to follow-up questions.
-- **Self-Correction:** Employs a retry mechanism to iteratively refine answers, minimizing hallucinations and improving accuracy.
-- **Terminal-Based Chat Interface:** Offers a user-friendly, real-time chat interface for interaction.
-- **UID Tracking & Database:** Assigns unique identifiers to each interaction, facilitating tracking, analysis, and debugging.
-- **Caching:** Enhances performance by storing and reusing previous results.
-- **Document Referencing:** Provides transparency by citing the sources used to generate answers.
-- **Efficient Multilingual Tokenizer:** Utilizes SentencePiece for efficient handling of multiple languages.
-- **Offline LLM:** Leverages the Vicuna-7B model for powerful language understanding and answer generation capabilities in an offline setting.
-- **Queue-Based Processing:** Handles multiple chat requests concurrently, ensuring fair and efficient processing.
-- **User Feedback Mechanism:**  Collects user feedback (thumbs up/thumbs down) to improve the system's performance over time.
+* Offline Operation: Functions entirely without an internet connection, ensuring data privacy and availability.
+* Multilingual Support: Handles questions and provides answers in multiple languages (Spanish, French, German, Thai, Russian, Arabic, Portuguese, Mandarin).
+* Contextual Understanding: Maintains conversation history within chat sessions to provide more relevant and coherent responses to follow-up questions.
+* Self-Correction: Employs a retry mechanism to iteratively refine answers, minimizing hallucinations and improving accuracy.
+* Terminal-Based Chat Interface: Offers a user-friendly, real-time chat interface for interaction.
+* UID Tracking & Database: Assigns unique identifiers to each interaction, facilitating tracking, analysis, and debugging.
+* Caching: Enhances performance by storing and reusing previous results.
+* Document Referencing: Provides transparency by citing the sources used to generate answers.
+* Efficient Multilingual Tokenizer: Utilizes SentencePiece for efficient handling of multiple languages.
+* Offline LLM: Leverages the Vicuna-7B model for powerful language understanding and answer generation capabilities in an offline setting.
+* Queue-Based Processing: Handles multiple chat requests concurrently, ensuring fair and efficient processing.
+* User Feedback Mechanism:  Collects user feedback (thumbs up/thumbs down) to improve the system's performance over time.
 
 ![image](/CRAIG_Graph.svg)
-
 
 ## System Architecture
 
@@ -378,10 +377,10 @@ The `Dockerfile` includes instructions to:
 1.  Run the Docker container in interactive mode:
 
     ```bash
-    docker run -it offline-qna-system
+    docker run -it -v $(pwd)/uploads:/uploads offline-qna-system  # mounts the 'uploads' folder from your current directory
     ```
 
-    This will start the container, and you should see the chat interface in the terminal.
+    This will start the container, and you should see the chat interface in the terminal. The `-v $(pwd)/uploads:/uploads` option mounts the `uploads` folder from your current directory to the `/uploads` directory inside the container, allowing the container to access and process the documents you add to the `uploads` folder on your host machine.
 
 2.  **Set up the database:**
 
@@ -418,7 +417,7 @@ docker run -it \
        -v /path/to/your/data:/app/data \  # Mount data directory for persistence
        -p 6379:6379 \  # Map Redis port
        offline-qna-system
-```       
-
+```
 This command mounts the /path/to/your/data directory from your host machine to the /app/data directory inside the container, ensuring that any data stored in the database or cache is persisted even after the container stops. It also maps the container's Redis port (6379) to the same port on the host machine, allowing you to access Redis from outside the container.
 
+By following these instructions, you can easily set up and run the offline multilingual question-answering system within a Docker container, simplifying the deployment process and ensuring a consistent environment across different machines.

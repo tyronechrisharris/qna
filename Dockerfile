@@ -32,8 +32,9 @@ COPY . .
 # EXPOSE 6379  # Redis default port
 # EXPOSE 5432  # PostgreSQL default port
 
-# Define commands to start Redis and PostgreSQL servers
+# Define commands to start Redis and PostgreSQL servers, and then run the main program
 CMD service redis-server start && \
     service postgresql start && \
     sleep 5 && \
+    python -c "from langchain.document_loaders import DirectoryLoader; from langchain.text_splitter import RecursiveCharacterTextSplitter; from langchain.vectorstores import FAISS; from langchain.embeddings import HuggingFaceEmbeddings; loader = DirectoryLoader('/uploads', glob='**/*.txt'); documents = loader.load(); text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=0); texts = text_splitter.split_documents(documents); embeddings = HuggingFaceEmbeddings(model_name='sentence-transformers/all-MiniLM-L6-v2'); db = FAISS.from_documents(texts, embeddings); db.save_local('data/faiss_index')" && \
     python main.py
