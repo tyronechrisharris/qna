@@ -47,7 +47,7 @@ This system is designed to provide a seamless and informative question-answering
 - **Queue-Based Processing:** Handles multiple chat requests concurrently, ensuring fair and efficient processing.
 - **User Feedback Mechanism:**  Collects user feedback (thumbs up/thumbs down) to improve the system's performance over time.
 
-![image](/CRAIG_Graph.png)
+![image](/CRAIG_Graph.svg)
 
 
 ## System Architecture
